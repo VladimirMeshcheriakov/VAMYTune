@@ -11,6 +11,11 @@ float tans(float volume, float frequency, double time)
     return volume * atan(sin(frequency * 2.0 * M_PI * time));
 }
 
+float ttans(float volume, float frequency, double time)
+{
+    return volume * acos(asin(sin(frequency * 2.0 * M_PI * time)) * 2.0 / M_PI);
+}
+
 float square(float volume, float frequency, double time)
 {
     return volume * ((sin(frequency * 2.0 * M_PI * time)) > 0.0 ? 1.0 : -1.0);
