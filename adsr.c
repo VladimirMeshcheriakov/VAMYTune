@@ -82,7 +82,7 @@ float adsr_get_amplitude(double time, ADSR *envelope)
                 signal = envelope->sustain_amplitude -
                          ((envelope->sustain_amplitude - envelope->release_amplitude) *
                           ((actual_signal_time - (envelope->stop_time - envelope->press_time)) / (envelope->release_time)));
-                printf("RELEASE %f, timestamp: %f\n", signal, actual_signal_time);
+                //printf("RELEASE %f, timestamp: %f\n", signal, actual_signal_time);
             }
             else
             {
@@ -94,7 +94,7 @@ float adsr_get_amplitude(double time, ADSR *envelope)
         // Sustain
         signal = envelope->sustain_amplitude;
 
-        printf("SUSTAIN %f, timestamp: %f\n", signal, actual_signal_time);
+        //printf("SUSTAIN %f, timestamp: %f\n", signal, actual_signal_time);
         return signal;
     }
 }
