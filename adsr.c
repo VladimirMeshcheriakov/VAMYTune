@@ -1,8 +1,4 @@
-#include <stdlib.h>
-#include <stdbool.h>
-#include <SDL2/SDL.h>
 #include "adsr.h"
-
 
 
 ADSR *init_ADSR_envelope(double attack_to_decay_time,
@@ -23,21 +19,20 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
     adsr->start_amplitude = start_amplitude;
     adsr->sustain_amplitude = sustain_amplitude;
     adsr->release_amplitude = release_amplitude;
-
-    adsr->released = false;
-
     adsr->press_time = 0.0;
     adsr->stop_time = 0.0;
+    adsr->released = false;
     adsr->press_time_set = false;
     return adsr;
 }
 
 
-float adsr_get_amplitude(double time, ADSR *envelope)
+float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
 {
     float signal;
     // The time from the press of the signal
-    double actual_signal_time = time - envelope->press_time;
+    double actual_signal_time = time - t_inst->press_time;
+    //printf("time: %f, press_time: %f\n",time,t_inst->press_time);
     // If the time from the press of the signal is still in the AD phase than calculate the amplitude
     if (actual_signal_time <= envelope->attack_to_decay_time + envelope->decay_to_sustain_time)
     {
@@ -73,15 +68,15 @@ float adsr_get_amplitude(double time, ADSR *envelope)
         // SR
         // Release
         //printf("%d\n",envelope->released);
-        if (envelope->released)
+        if (t_inst->released)
         {
             // If the time the signal is played is still in the ADSR enveloppe,
             // process the amplitude, if not send out zero
-            if (actual_signal_time < envelope->stop_time + envelope->release_time)
+            if (actual_signal_time < t_inst->stop_time + envelope->release_time)
             {
                 signal = envelope->sustain_amplitude -
                          ((envelope->sustain_amplitude - envelope->release_amplitude) *
-                          ((actual_signal_time - (envelope->stop_time - envelope->press_time)) / (envelope->release_time)));
+                          ((actual_signal_time - (t_inst->stop_time - t_inst->press_time)) / (envelope->release_time)));
                 //printf("RELEASE %f, timestamp: %f\n", signal, actual_signal_time);
             }
             else

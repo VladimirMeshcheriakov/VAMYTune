@@ -1,0 +1,160 @@
+#include <stdlib.h>
+#include <stdbool.h>
+#include <SDL2/SDL.h>
+#include "adsr.h"
+
+
+
+ADSR *init_ADSR_envelope(double attack_to_decay_time,
+                         double decay_to_sustain_time,
+                         double release_time,
+                         double start_amplitude,
+                         double attack_top_amplitude,
+                         double sustain_amplitude)
+{
+    ADSR *adsr = malloc(sizeof(ADSR));
+
+    adsr->attack_to_decay_time = attack_to_decay_time;
+    adsr->decay_to_sustain_time = decay_to_sustain_time;
+    adsr->release_time = release_time;
+
+    adsr->attack_speed = (attack_top_amplitude - start_amplitude)/attack_to_decay_time;
+    adsr->decay_speed = (attack_top_amplitude - sustain_amplitude)/decay_to_sustain_time;
+
+    adsr->attack_top_amplitude = attack_top_amplitude;
+    adsr->start_amplitude = start_amplitude;
+    adsr->sustain_amplitude = sustain_amplitude;
+    return adsr;
+}
+
+TimeStamp *init_TimeStamp()
+{
+    TimeStamp *time_stamp = malloc(sizeof(TimeStamp));
+    time_stamp->released = false;
+    time_stamp->press_time_set = false;
+    time_stamp->premature_release = false;
+
+    time_stamp->press_time = -1.0;
+    time_stamp->stop_time = 0.0;
+    return time_stamp;
+}
+
+
+
+
+float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *time_stamp)
+{
+    float signal;
+    // The time from the press of the signal
+    double actual_signal_time = time - time_stamp->press_time;
+    // If the time from the press of the signal is still in the AD phase than calculate the amplitude
+    if (actual_signal_time <= envelope->attack_to_decay_time + envelope->decay_to_sustain_time)
+    {
+        // AD
+    
+        // if in the Attack phase
+        // WORKS
+        if (actual_signal_time <= envelope->attack_to_decay_time)
+        {
+            // Normalise the constant between 1 and 0 and multiply by attack_top_amplitude
+            // Makes an affine function from start amplitude to attack_top_amplitude
+            signal = actual_signal_time * envelope->attack_speed + envelope->start_amplitude;
+            //printf("ATTACK %f, timestamp: %f\n", signal, actual_signal_time);
+        }
+        // if in the Decay phase
+        // Seems to WORK
+        else
+        {
+            // normalise the constant between 1 and 0 and multiply by sustain_amplitude
+            // since we have reached atta_to_amplitude we will now subtract from it
+            // we need to get to the sustain_amplitude at the end so we will be
+            // normalising (attack_top_amplitude - sustain_amplitude)
+            //
+            signal = envelope->attack_top_amplitude -
+                     ((actual_signal_time - envelope->attack_to_decay_time)*envelope->decay_speed);
+            //printf("DECAY %f, timestamp: %f\n", signal, actual_signal_time);
+        }
+        envelope->actual_amplitude = signal;
+        return signal;
+    }
+    else
+    {
+        // SR
+        // Release
+        //printf("%d\n",envelope->released);
+        if (time_stamp->released)
+        {
+            // If the time the signal is played is still in the ADSR enveloppe,
+            // process the amplitude, if not send out zero
+            if (actual_signal_time < time_stamp->stop_time - time_stamp->press_time +  envelope->release_time)
+            {
+                signal = envelope->sustain_amplitude -
+                         ((envelope->sustain_amplitude) *
+                          ((actual_signal_time - (time_stamp->stop_time - time_stamp->press_time)) / (envelope->release_time)));
+                //printf("RELEASE %f, timestamp: %f, stop_time: %f\n", signal, actual_signal_time, envelope->stop_time - envelope->press_time +  envelope->release_time);
+            }
+            else
+            {
+                // End the envelope sequence
+                signal = 0;
+            }
+            envelope->actual_amplitude = signal;
+            return signal;
+        }
+        // Sustain
+        signal = envelope->sustain_amplitude;
+
+        //printf("SUSTAIN %f, timestamp: %f\n", signal, actual_signal_time);
+        envelope->actual_amplitude = signal;
+        return signal;
+    }
+}
+
+///////////////////
+
+
+#include <stdlib.h>
+#include <stdbool.h>
+#include <SDL2/SDL.h>
+
+#ifndef ADSR_H
+#define ADSR_H
+typedef struct
+{
+    bool released;
+    bool premature_release;
+    bool press_time_set;
+
+    double press_time;
+    double stop_time;
+}TimeStamp;
+
+typedef struct
+{
+    double attack_to_decay_time;
+    double decay_to_sustain_time;
+    double release_time;
+
+    double attack_speed;
+    double decay_speed;
+
+    double start_amplitude;
+    double attack_top_amplitude;
+    double sustain_amplitude;
+    double release_amplitude;
+
+    double actual_amplitude;
+} ADSR;
+
+
+ADSR *init_ADSR_envelope(double attack_to_decay_time,
+                         double decay_to_sustain_time,
+                         double release_time,
+                         double start_amplitude,
+                         double attack_top_amplitude,
+                         double sustain_amplitude);
+float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *time_stamp);
+TimeStamp *init_TimeStamp();
+
+
+#endif

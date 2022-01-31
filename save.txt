@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <SDL2/SDL.h>
+#include <sys/wait.h>
 #include "signals.h"
 #include "userdata.h"
 
@@ -10,6 +11,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     ud *us_d = (ud *)userdata;
     uint64_t *samples_played = (uint64_t *)(us_d->samples_played);
     ADSR *adsr = us_d->adsr;
+    TimeStamp *time_stamp = us_d->time_stamp;
     float *fstream = (float *)(stream);
     float frequency = us_d->freq;
     static const float volume = 1;
@@ -17,62 +19,309 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     {
         double time = (*samples_played + sid) / 44100.0;
         us_d->actual_time = time;
-        // printf("Time %f\n",us_d->actual_time);
-        float val = ( sine(volume, frequency, time)) * adsr_get_amplitude(time, adsr);
-        fstream[2 * sid + 0] = val; /* L */
-        fstream[2 * sid + 1] = val; /* R */
+        if (frequency != 0.0)
+        {
+            // printf("Time %f\n",us_d->actual_time);
+            float val = ( sine(volume, frequency, time));
+            fstream[2 * sid + 0] = val; /* L */
+            fstream[2 * sid + 1] = val; /* R */
+        }
+        else
+        {
+            float val = 0.0;
+            fstream[2 * sid + 0] = val; /* L */
+            fstream[2 * sid + 1] = val; /* R */
+        }
     }
     *samples_played += (len / 8);
 }
 
-void key_on(SDL_AudioDeviceID audio_device_id,ADSR *env, ud *data,SDL_Keycode note)
+void key_on(SDL_AudioDeviceID audio_device_id, ud *data, char note)
 {
-    if (!(env->press_time_set))
+    data->time_stamp = init_TimeStamp();
+    if (!(data->time_stamp->press_time_set))
     {
         // Sets the time, using the constant time management
         // of the audio-callback function
-        env->press_time = data->actual_time;
+        data->time_stamp->press_time = data->actual_time;
     }
-    env->press_time_set = true;
+    data->time_stamp->press_time_set = true;
     // If it is pressed it is no longer released
-    env->released = false;
-
-    const char *c = SDL_GetKeyName(note);
+    data->time_stamp->released = false;
+    data->time_stamp->premature_release = false;
+    //const char *c = SDL_GetKeyName(note);
     // Convert it to a frequency value in Hertz
-    float freq = note_to_freq(c[0] + 32);
+    float freq = note_to_freq(note);
     // modify the frequency
     data->freq = freq;
 
     // Data is set so start to play
-    SDL_PauseAudioDevice(audio_device_id, 0);
 }
 
-void key_off(SDL_AudioDeviceID audio_device_id, ADSR *env, ud *data)
+void key_off(SDL_AudioDeviceID audio_device_id, ud *data)
 {
     // The key has been released
-    env->released = true;
+    data->time_stamp->released = true;
+    data->time_stamp->premature_release = false;
     // We need to erase the press time so that the next note's
     // Press_time can be set
-    env->press_time_set = false;
+    data->time_stamp->press_time_set = false;
     // Save the release timestamp
-    env->stop_time = data->actual_time;
+    data->time_stamp->stop_time = data->actual_time;
     // Delay SDL to be able to play the release phase
-    SDL_Delay((env->release_time) * 1000);
+    SDL_Delay((data->adsr->release_time) * 1000);
+    data->freq = 0.0;
     // Stop the  audio
-    SDL_PauseAudioDevice(audio_device_id, 1);
+    // SDL_PauseAudioDevice(audio_device_id, 1);
+    free(data->time_stamp);
 }
 
+//TODO
+/*
+Change state function
 
+*/
 
+void init_piano_keys(const Uint8 *state, Uint8 *piano_keys)
+{
+    piano_keys[0] = state[22];
+    piano_keys[1] = state[8];
+    piano_keys[2] = state[7];
+    piano_keys[3] = state[21];
+    piano_keys[4] = state[9];
+    piano_keys[5] = state[10];
+    piano_keys[6] = state[28];
+    piano_keys[7] = state[11];
+    piano_keys[8] = state[24];
+    piano_keys[9] = state[13];
+    piano_keys[10] = state[12];
+    piano_keys[11] = state[14];
+    piano_keys[12] = state[15];
+}
+
+void print_keyboard_state(const Uint8 *piano_keys)
+{
+    printf(" _______________________________________________________\n");
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf("|  |  %d  |  |  %d  |   |   |  %d  |  |  %d  |  |  %d  |  |  |     \n", piano_keys[8], piano_keys[21], piano_keys[28], piano_keys[24], piano_keys[12]);
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf("|  |_____|  |_____|   |   |_____|  |_____|  |_____|  |  |__   \n");
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf("|  %d  |   %d    |  %d   |  %d   |   %d    |   %d    |  %d  |  %d  |  \n", piano_keys[22], piano_keys[7], piano_keys[9], piano_keys[10], piano_keys[11], piano_keys[13], piano_keys[14], piano_keys[15]);
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf("|_____|________|______|______|________|________|_____|_____|  \n");
+}
+
+void note_state(const Uint8 *piano_keys, Uint8 *past_occ,SDL_AudioDeviceID audio_device_id, ud *data)
+{
+    char note;
+    if (piano_keys[22] != past_occ[0])
+    {
+        //STATE CHANGED
+        if(piano_keys[22])
+        {
+            note = 's';
+            //KEY IS ON
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[8] != past_occ[1])
+    {
+        //STATE CHANGED
+        if(piano_keys[8])
+        {
+            //KEY IS ON
+            note = 'e';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[7] != past_occ[2])
+    {
+        //STATE CHANGED
+        if(piano_keys[7])
+        {
+            //KEY IS ON
+            note = 'd';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[21] != past_occ[3])
+    {
+        //STATE CHANGED
+        if(piano_keys[21])
+        {
+            //KEY IS ON
+            note = 'r';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[9] != past_occ[4])
+    {
+        //STATE CHANGED
+        if(piano_keys[9])
+        {
+            //KEY IS ON
+            note = 'f';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[10] != past_occ[5])
+    {
+        //STATE CHANGED
+        if(piano_keys[10])
+        {
+            //KEY IS ON
+            note = 'g';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[28] != past_occ[6])
+    {
+        //STATE CHANGED
+        if(piano_keys[28])
+        {
+            //KEY IS ON
+            note = 'y';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[11] != past_occ[7])
+    {
+        //STATE CHANGED
+        if(piano_keys[11])
+        {
+            //KEY IS ON
+            note = 'h';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[24] != past_occ[8])
+    {
+        //STATE CHANGED
+        if(piano_keys[24])
+        {
+            //KEY IS ON
+            note = 'u';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[13] != past_occ[9])
+    {
+        //STATE CHANGED
+        if(piano_keys[13])
+        {
+            //KEY IS ON
+            note = 'j';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[12] != past_occ[10])
+    {
+        //STATE CHANGED
+        if(piano_keys[12])
+        {
+            //KEY IS ON
+            note = 'i';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[14] != past_occ[11])
+    {
+        //STATE CHANGED
+        if(piano_keys[14])
+        {
+            //KEY IS ON
+            note = 'k';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+    if (piano_keys[15] != past_occ[12])
+    {
+        //STATE CHANGED
+        if(piano_keys[15])
+        {
+            //KEY IS ON
+            note = 'l';
+            key_on(audio_device_id,data,note);
+        }
+        else
+        {
+            //KEY IS OFF
+            key_off(audio_device_id,data);
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
     // Init the ADSR envelope
-    ADSR *env = init_ADSR_envelope(0.2, 0.2, 0.2, 0.0, 1.0, 0.4, 0.0);
+    ADSR *env = init_ADSR_envelope(0.1, 0.1, 0.1, 0.0, 1.0, 0.4);
     // Datat to pass to the audio_callback function
     uint64_t samples_played = 0;
 
-    ud *data = init_ud(samples_played,env);
+    ud *data = init_ud(samples_played, env);
 
     if (SDL_Init(SDL_INIT_AUDIO) < 0)
     {
@@ -120,31 +369,42 @@ int main(int argc, char *argv[])
         }
     }
 
-    SDL_PauseAudioDevice(audio_device_id, 1);
+    SDL_PauseAudioDevice(audio_device_id, 0);
 
     SDL_Event event;
-    
-    bool running = true;
+
+    int running = 1;
+    int *numkeys = malloc(sizeof(int));
+    const Uint8 *state = SDL_GetKeyboardState(numkeys);
+    Uint8 *past_occ = malloc(sizeof(Uint8) * 13);
+    init_piano_keys(state, past_occ);
     while (running)
     {
         while (SDL_PollEvent(&event))
         {
+            
+            print_keyboard_state(state);
+            note_state(state, past_occ,audio_device_id,data);
+            init_piano_keys(state, past_occ);
+            
+            /*
             switch (event.type)
             {
             case SDL_KEYDOWN:
                 SDL_Keycode note = event.key.keysym.sym;
-                key_on(audio_device_id,env,data,note);
+                key_on(audio_device_id, data, note);
                 break;
             case SDL_KEYUP:
-                key_off(audio_device_id, env, data);
+                key_off(audio_device_id, data);
                 break;
             case SDL_QUIT:
                 SDL_PauseAudioDevice(audio_device_id, 1);
-                running = false;
+                running = 0;
                 break;
             default:
                 break;
             }
+            */
         }
     }
 
@@ -153,5 +413,6 @@ int main(int argc, char *argv[])
     SDL_Quit();
     free(env);
     free(data);
+    free(numkeys);
     return 0;
 }

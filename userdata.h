@@ -8,6 +8,7 @@ typedef struct
     uint64_t *samples_played;
     ADSR *adsr;
     float freq;
+    Uint8 *all_freq;
     double actual_time;
 } ud;
 

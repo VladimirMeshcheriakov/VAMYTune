@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include "time_stamp.h"
 
 #ifndef ADSR_H
 #define ADSR_H
@@ -17,11 +18,10 @@ typedef struct
     double release_amplitude;
 
     bool released;
+    bool press_time_set;
 
     double press_time;
     double stop_time;
-
-    bool press_time_set;
 } ADSR;
 
 
@@ -32,7 +32,7 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
                          double attack_top_amplitude,
                          double sustain_amplitude,
                          double release_amplitude);
-float adsr_get_amplitude(double time, ADSR *envelope);
+float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst);
 
 
 #endif
