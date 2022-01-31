@@ -34,26 +34,18 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     ADSR *adsr = us_d->adsr;
     Uint8 *keys = us_d->all_freq;
     float *fstream = (float *)(stream);
-    float frequency = us_d->freq;
     static const float volume = 0.2;
     for (int sid = 0; sid < (len/8); ++sid)
     {
+        keys = us_d->all_freq;
         double time = (*samples_played + sid) / 44100.0;
         //printf("Time %f\n",time);
         us_d->actual_time = time;
-        if (frequency != 0.0)
-        {
-            
+
             float val = signal_treat(volume,time,keys) ;
             fstream[2 * sid + 0] = val; /* L */
             fstream[2 * sid + 1] = val; /* R */
-        }
-        else
-        {
-            float val = 0.0;
-            fstream[2 * sid + 0] = val; /* L */
-            fstream[2 * sid + 1] = val; /* R */
-        }
+
     }
     *samples_played += (len/8);
 }
@@ -177,7 +169,6 @@ void note_state(const Uint8 *piano_keys, Uint8 *past_occ, ADSR *env, SDL_AudioDe
         // STATE CHANGED
         note_change_state(piano_keys,env,past_occ,audio_device_id,data,15,'l');
     }
-    //update all the effect values for each note
 
     
 }
@@ -281,7 +272,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    SDL_PauseAudioDevice(audio_device_id, 1);
+    SDL_PauseAudioDevice(audio_device_id, 0);
 
     TimeStamp **table_time = init_time_table(13);
     SDL_Event event;
@@ -299,7 +290,7 @@ int main(int argc, char *argv[])
             
             //print_keyboard_state(state);
             
-            note_state(state, piano_keys,env,audio_device_id,data);
+            //note_state(state, piano_keys,env,audio_device_id,data);
             //update_effects(effects,data,env,table_time);
             init_piano_keys(state, piano_keys);
             if(event.type == SDL_QUIT)
