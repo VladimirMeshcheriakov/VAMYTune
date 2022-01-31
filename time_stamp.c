@@ -4,8 +4,8 @@ TimeStamp *init_time_stamp()
 {
     TimeStamp *time_instance = malloc(sizeof(TimeStamp));
     time_instance->press_time = 0.0;
-    time_instance->press_time_set = false;
-    time_instance->released = false;
+    time_instance->press_time_set = 0;
+    time_instance->released = 0;
     time_instance->stop_time = 0.0;
     return time_instance;
 }

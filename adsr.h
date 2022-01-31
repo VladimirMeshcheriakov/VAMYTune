@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include <SDL2/SDL.h>
 #include "time_stamp.h"
 
@@ -17,8 +16,8 @@ typedef struct
     double sustain_amplitude;
     double release_amplitude;
 
-    bool released;
-    bool press_time_set;
+    int released;
+    int press_time_set;
 
     double press_time;
     double stop_time;

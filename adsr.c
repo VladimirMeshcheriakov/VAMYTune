@@ -19,10 +19,12 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
     adsr->start_amplitude = start_amplitude;
     adsr->sustain_amplitude = sustain_amplitude;
     adsr->release_amplitude = release_amplitude;
+
     adsr->press_time = 0.0;
     adsr->stop_time = 0.0;
-    adsr->released = false;
-    adsr->press_time_set = false;
+    adsr->released = 0;
+    adsr->press_time_set = 0;
+    
     return adsr;
 }
 

@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
 #include <SDL2/SDL.h>
 #include "signals.h"
@@ -66,9 +65,9 @@ void key_on(SDL_AudioDeviceID audio_device_id, ADSR *env, ud *data, char note)
         // of the audio-callback function
         env->press_time = data->actual_time;
     }
-    env->press_time_set = true;
+    env->press_time_set = 1;
     // If it is pressed it is no longer released
-    env->released = false;
+    env->released = 0;
     // Convert it to a frequency value in Hertz
     float freq = note_to_freq(note);
     // modify the frequency
@@ -80,10 +79,10 @@ void key_on(SDL_AudioDeviceID audio_device_id, ADSR *env, ud *data, char note)
 void key_off(SDL_AudioDeviceID audio_device_id, ADSR *env, ud *data)
 {
     // The key has been released
-    env->released = true;
+    env->released = 1;
     // We need to erase the press time so that the next note's
     // Press_time can be set
-    env->press_time_set = false;
+    env->press_time_set = 0;
     // Save the release timestamp
     env->stop_time = data->actual_time;
     // Delay SDL to be able to play the release phase
@@ -290,7 +289,7 @@ int main(int argc, char *argv[])
     Uint8 *piano_keys = malloc(sizeof(Uint8)*13);
     init_piano_keys(state,piano_keys);
     data->all_freq = piano_keys;
-    bool running = true;
+    int running = 1;
     float *effects = malloc(13*sizeof(float));
     while (running)
     {
@@ -304,7 +303,7 @@ int main(int argc, char *argv[])
             init_piano_keys(state, piano_keys);
             if(event.type == SDL_QUIT)
             {
-                running = false;
+                running = 0;
             }
             
             /*

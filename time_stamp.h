@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdbool.h>
 #include <SDL2/SDL.h>
 
 #ifndef TIMESTAMP_H
@@ -8,10 +7,10 @@
 typedef struct
 {
 
-    bool released;
+    int released;
     double press_time;
     double stop_time;
-    bool press_time_set;
+    int press_time_set;
 
 } TimeStamp;
 
