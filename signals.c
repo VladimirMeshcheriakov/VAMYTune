@@ -1,60 +1,52 @@
-#include <stdlib.h>
-#include <math.h>
+#include "signals.h"
+#include "basic_signals.h"
 
-float sine(float volume, float frequency, double time)
+float signal(float volume, double time, float freq)
 {
-    return volume * (sin(frequency * 2.0 * M_PI * time));
+    // Orgue
+    // sine(volume, freq, time) + 0.5 * saw2(volume, freq*2.0, time,4)+ 0.2 *
+    // triangle(volume, freq*4.0, time)  +  0.1 * square(volume, freq*5.0,
+    // time,0.25);
+
+    return sine(volume, freq, time) + 0.5 * saw2(volume, freq * 2.0, time, 4) + 0.2 * triangle(volume, freq * 4.0, time) + 0.1 * square(volume, freq * 5.0, time, 0.25);
 }
 
-float logsin(float volume, float frequency, double time)
+float octave(float volume, double time, float freq)
 {
-    return volume * (sin(log(frequency * 2.0 * M_PI * time)*sin(frequency * 2.0 * M_PI * time)));
+    return signal(volume, time, freq * 0.5);
 }
 
-float logcos(float volume, float frequency, double time)
-{
-    return volume * (cos(log(frequency * 2.0 * M_PI * time)*cos(frequency * 2.0 * M_PI * time)));
-}
-
-float tans(float volume, float frequency, double time)
-{
-    return volume * atan(sin(frequency * 2.0 * M_PI * time));
-}
-
-float ttans(float volume, float frequency, double time)
-{
-    return volume * acos(asin(sin(frequency * 2.0 * M_PI * time)) * 2.0 / M_PI);
-}
-
-float square(float volume, float frequency, double time, double shape)
-/*
-** shape : when shape == 0.0, then the signal is a 50% square wave, else it's a rectangle
-*/
-{
-    return volume * ((sin(frequency * 2.0 * M_PI * time)) > shape ? 1.0 : -1.0);
-}
-
-float triangle(float volume, float frequency, double time)
-{
-    return volume * (asin(sin(frequency * 2.0 * M_PI * time)) * 2.0 / M_PI);
-}
-
-float saw(float volume, float frequency, double time)
-{
-    return volume * (2.0 / M_PI) * (frequency * M_PI * fmod(time, 1.0 / frequency) - (M_PI / 2.0));
-}
-
-float saw2(float volume, float frequency, double time, int limit)
+float signal_treat(float volume, double time, Keys *keys, ud *data)
 {
     float val = 0.0;
-    for (int n = 1; n < limit; n++)
-    {
-        val += (sin(frequency * 2.0 * M_PI * time * (float)n)) / (float)n;
-    }
 
-    val = volume * (2.0 / M_PI) * val;
+    for (int i = 0; i < 13; i++)
+    {
+        if (keys->keys[i])
+        {
+            val += keys->effects[i] * signal(volume, time, piano_note_to_freq(i));
+        }
+        else
+        {
+            if(data->time_table[i]->release_stage)
+            {
+                float effect = keys->effects[i];
+                if(effect <= 0.0)
+                {
+                    data->time_table[i]->release_stage = 0;
+                }
+                else
+                {
+                    val += effect* signal(volume, time, piano_note_to_freq(i));
+                }
+            }
+        }
+        
+    }
     return val;
 }
+
+
 
 float note_to_freq(char c)
 {
@@ -316,3 +308,5 @@ float piano_note_to_freq(int c)
     }
     return freq;
 }
+
+

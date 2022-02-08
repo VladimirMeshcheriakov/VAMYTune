@@ -34,7 +34,7 @@ void printf_time(TimeStamp **table,int size)
 {
     for (size_t i = 0; i < size; i++)
     {
-        printf("note: %d, press: %f, stop: %f |",i,table[i]->press_time,table[i]->stop_time);
+        printf("note: %ld, press: %f, stop: %f |",i,table[i]->press_time,table[i]->stop_time);
         printf("\n");
     }
 

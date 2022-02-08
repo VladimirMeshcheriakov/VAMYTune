@@ -1,14 +1,10 @@
 #include "time_stamp.h"
 #include "adsr.h"
+#include "keys.h"
 
 #ifndef USER_DATA_H
 #define USER_DATA_H
-typedef struct 
-{
-    Uint8 *keys;
-    double *effects;
-    size_t size;
-}Keys;
+
 
 
 typedef struct
