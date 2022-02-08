@@ -12,6 +12,7 @@ typedef struct
     double stop_time;
     int press_time_set;
     int release_stage;
+    
 } TimeStamp;
 
 

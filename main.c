@@ -36,7 +36,7 @@ float octave(float volume, double time, float freq)
     return signal(volume, time, freq * 0.5);
 }
 
-float signal_treat(float volume, double time, Keys *keys)
+float signal_treat(float volume, double time, Keys *keys, ud *data)
 {
     float val = 0.0;
 
@@ -46,6 +46,23 @@ float signal_treat(float volume, double time, Keys *keys)
         {
             val += keys->effects[i] * signal(volume, time, piano_note_to_freq(i));
         }
+        else
+        {
+            if(data->time_table[i]->release_stage)
+            {
+
+                float effect = keys->effects[i];
+                if(effect <= 0.0)
+                {
+                    data->time_table[i]->release_stage = 0;
+                }
+                else
+                {
+                    val += effect* signal(volume, time, piano_note_to_freq(i));
+                }
+            }
+        }
+        
     }
 
     return val;
@@ -64,7 +81,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         double time = (*samples_played + sid) / 44100.0;
         // printf("Time %f\n",time);
         us_d->actual_time = time;
-        float val = signal_treat(volume, time, all_keys);
+        float val = signal_treat(volume, time, all_keys,us_d);
         // printf("%f\n", val);
         fstream[2 * sid + 0] = val; /* L */
         fstream[2 * sid + 1] = val; /* R */
@@ -250,9 +267,17 @@ void update_effects(ud *data)
         {
             data->all_keys->effects[i] = adsr_get_amplitude(data->actual_time, data->adsr, data->time_table[i]);
         }
+
         else
         {
-            data->all_keys->effects[i] = 0;
+            if(data->time_table[i]->release_stage)
+            {
+                data->all_keys->effects[i] = adsr_get_amplitude(data->actual_time, data->adsr, data->time_table[i]);
+            }
+            else
+            {
+                data->all_keys->effects[i] = 0;
+            }
         }
         // printf(" i: %ld, %f | ",i,effects[i]);
     }
@@ -262,7 +287,7 @@ void update_effects(ud *data)
 int main(int argc, char *argv[])
 {
     // Init the ADSR envelope
-    ADSR *env = init_ADSR_envelope(0.5, 1.5, 1.5, 0.0, 1.0, 0.4, 0.0);
+    ADSR *env = init_ADSR_envelope(0.4, 0.4, 0.4, 0.0, 1.0, 0.5, 0.0);
     TimeStamp **table_time = init_time_table(13);
     // Datat to pass to the audio_callback function
     uint64_t samples_played = 0.;
