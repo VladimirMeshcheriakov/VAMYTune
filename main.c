@@ -4,22 +4,8 @@
 #include "signals.h"
 #include "userdata.h"
 #include "adsr.h"
+#include "keys.h"
 
-Keys *init_keys(size_t size)
-{
-    Keys *keys = malloc(sizeof(Keys));
-    keys->size = size;
-    keys->effects = calloc(size, sizeof(double));
-    keys->keys = calloc(size, sizeof(Uint8));
-    return keys;
-}
-
-void free_keys(Keys *keys)
-{
-    free(keys->effects);
-    free(keys->keys);
-    free(keys);
-}
 
 float signal(float volume, double time, float freq)
 {
@@ -50,7 +36,6 @@ float signal_treat(float volume, double time, Keys *keys, ud *data)
         {
             if(data->time_table[i]->release_stage)
             {
-
                 float effect = keys->effects[i];
                 if(effect <= 0.0)
                 {
@@ -64,7 +49,6 @@ float signal_treat(float volume, double time, Keys *keys, ud *data)
         }
         
     }
-
     return val;
 }
 
@@ -79,15 +63,11 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     {
         all_keys = us_d->all_keys;
         double time = (*samples_played + sid) / 44100.0;
-        // printf("Time %f\n",time);
         us_d->actual_time = time;
         float val = signal_treat(volume, time, all_keys,us_d);
-        // printf("%f\n", val);
         fstream[2 * sid + 0] = val; /* L */
         fstream[2 * sid + 1] = val; /* R */
     }
-    // printf("%d\n",len);
-
     *samples_played += (len / 8);
 }
 
@@ -112,8 +92,6 @@ void key_on(ud *data, int note_pos)
 {
     if (!(data->time_table[note_pos]->press_time_set))
     {
-        // Sets the time, using the constant time management
-        // of the audio-callback function
         data->time_table[note_pos]->press_time = data->actual_time;
         data->time_table[note_pos]->press_time_set = 1;
         data->time_table[note_pos]->released = 0;
@@ -123,15 +101,9 @@ void key_on(ud *data, int note_pos)
 void key_off(ud *data, int note_pos)
 {
     data->time_table[note_pos]->press_time_set = 0;
-    // The key has been released
     data->time_table[note_pos]->released = 1;
     data->time_table[note_pos]->release_stage = 1;
-    // We need to erase the press time so that the next note's
-    // Press_time can be set
-    // Save the release timestamp
     data->time_table[note_pos]->stop_time = data->actual_time;
-    // Delay SDL to be able to play the release phase
-    // SDL_Delay((data->adsr->release_time) * 1000);
 }
 
 void note_state_change(Uint8 *piano_keys, ud *data, int key_id)
@@ -139,28 +111,12 @@ void note_state_change(Uint8 *piano_keys, ud *data, int key_id)
     if (!piano_keys[key_id])
     {
         // KEY IS ON
-
         key_on(data, key_id);
-        // printf_time(data->time_table, 13);
-        /*
-        printf("key_id %d: On\n",key_id);
-        printf("time %f\n",data->actual_time);
-        printf("Press_time: %f\n",data->time_table[key_id]->press_time);
-        printf("Stop_time: %f\n",data->time_table[key_id]->stop_time);
-        */
     }
     else
     {
         // KEY IS OFF
         key_off(data, key_id);
-        // printf_time(data->time_table, 13);
-        /*
-        printf("key_id %d: Off\n",key_id);
-        printf("Note info\n");
-        printf("time %f\n",data->actual_time);
-        printf("Press_time: %f\n",data->time_table[key_id]->press_time);
-        printf("Stop_time: %f\n",data->time_table[key_id]->stop_time);
-        */
     }
 }
 
