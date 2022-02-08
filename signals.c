@@ -6,6 +6,16 @@ float sine(float volume, float frequency, double time)
     return volume * (sin(frequency * 2.0 * M_PI * time));
 }
 
+float logsin(float volume, float frequency, double time)
+{
+    return volume * (sin(log(frequency * 2.0 * M_PI * time)*sin(frequency * 2.0 * M_PI * time)));
+}
+
+float logcos(float volume, float frequency, double time)
+{
+    return volume * (cos(log(frequency * 2.0 * M_PI * time)*cos(frequency * 2.0 * M_PI * time)));
+}
+
 float tans(float volume, float frequency, double time)
 {
     return volume * atan(sin(frequency * 2.0 * M_PI * time));

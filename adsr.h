@@ -15,12 +15,6 @@ typedef struct
     double attack_top_amplitude;
     double sustain_amplitude;
     double release_amplitude;
-
-    int released;
-    int press_time_set;
-
-    double press_time;
-    double stop_time;
 } ADSR;
 
 

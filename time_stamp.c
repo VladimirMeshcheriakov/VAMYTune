@@ -7,6 +7,7 @@ TimeStamp *init_time_stamp()
     time_instance->press_time_set = 0;
     time_instance->released = 0;
     time_instance->stop_time = 0.0;
+    time_instance->release_stage = 0;
     return time_instance;
 }
 
@@ -27,4 +28,14 @@ void free_time_table(TimeStamp **table,int size)
         free(table[i]);
     }
     free(table);
+}
+
+void printf_time(TimeStamp **table,int size)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        printf("note: %d, press: %f, stop: %f |",i,table[i]->press_time,table[i]->stop_time);
+        printf("\n");
+    }
+
 }

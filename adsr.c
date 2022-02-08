@@ -19,11 +19,6 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
     adsr->start_amplitude = start_amplitude;
     adsr->sustain_amplitude = sustain_amplitude;
     adsr->release_amplitude = release_amplitude;
-
-    adsr->press_time = 0.0;
-    adsr->stop_time = 0.0;
-    adsr->released = 0;
-    adsr->press_time_set = 0;
     
     return adsr;
 }
@@ -34,12 +29,13 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
     float signal;
     // The time from the press of the signal
     double actual_signal_time = time - t_inst->press_time;
-    //printf("time: %f, press_time: %f\n",time,t_inst->press_time);
+    //printf("time: %f, actual: %f\n",time,actual_signal_time);
     // If the time from the press of the signal is still in the AD phase than calculate the amplitude
+
     if (actual_signal_time <= envelope->attack_to_decay_time + envelope->decay_to_sustain_time)
     {
         // AD
-
+        
         // if in the Attack phase
         // WORKS
         if (actual_signal_time <= envelope->attack_to_decay_time)

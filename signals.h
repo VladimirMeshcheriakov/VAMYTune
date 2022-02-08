@@ -2,7 +2,8 @@
 
 #ifndef SIGNALS_H
 #define SIGNALS_H
-
+float logsin(float volume, float frequency, double time);
+float logcos(float volume, float frequency, double time);
 float sine(float volume, float frequency, double time);
 float tans(float volume, float frequency, double time);
 float ttans(float volume, float frequency, double time);
