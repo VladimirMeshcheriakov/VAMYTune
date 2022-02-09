@@ -1,0 +1,12 @@
+#include "signals.h"
+#include "userdata.h"
+#include "adsr.h"
+#include "note_state_utils.h"
+
+#ifndef SDL_CALL_FUNC_H
+#define SDL_CALL_FUNC_H
+
+
+void init_run_app(ud *data, size_t num_keys, void *audio_callback);
+
+#endif

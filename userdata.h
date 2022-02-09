@@ -12,11 +12,10 @@ typedef struct
     uint64_t *samples_played;
     ADSR *adsr;
     TimeStamp **time_table;
-    Uint8 *all_freq;
     double actual_time;
     Keys *all_keys;
 } ud;
 
-
-ud * init_ud(uint64_t *samples_played, ADSR *env, TimeStamp **time_table);
+ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);
+void free_user_data(ud *data, size_t size);
 #endif

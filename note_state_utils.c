@@ -1,8 +1,9 @@
 #include "note_state_utils.h"
 
 
-void init_piano_keys(const Uint8 *state, Uint8 *piano_keys)
+void init_piano_keys(const Uint8 *state, ud *data)
 {
+    Uint8 *piano_keys = data->all_keys->keys;
     piano_keys[0] = state[22];
     piano_keys[1] = state[8];
     piano_keys[2] = state[7];
@@ -48,6 +49,29 @@ void note_state_change( ud *data, int key_id)
         // KEY IS OFF
         key_off(data, key_id);
     }
+}
+
+void print_keyboard_state(const Uint8 *piano_keys)
+{
+    printf(" _______________________________________________________\n");
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf(
+        "|  |  %d  |  |  %d  |   |   |  %d  |  |  %d  |  |  %d  |  |  |    "
+        " \n",
+        piano_keys[1], piano_keys[3], piano_keys[6], piano_keys[8],
+        piano_keys[10]);
+    printf("|  |     |  |     |   |   |     |  |     |  |     |  |  |     \n");
+    printf("|  |_____|  |_____|   |   |_____|  |_____|  |_____|  |  |__   \n");
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf(
+        "|  %d  |   %d    |  %d   |  %d   |   %d    |   %d    |  %d  |  %d "
+        " |  \n",
+        piano_keys[0], piano_keys[2], piano_keys[4], piano_keys[5],
+        piano_keys[7], piano_keys[9], piano_keys[11], piano_keys[12]);
+    printf("|     |        |      |      |        |        |     |     |  \n");
+    printf("|_____|________|______|______|________|________|_____|_____|  \n");
 }
 
 void note_state(const Uint8 *state, ud *data)
