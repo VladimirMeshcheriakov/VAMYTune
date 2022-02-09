@@ -5,8 +5,13 @@
 #ifndef ADSR_H
 #define ADSR_H
 
+/*
+This class contains the ADSR enveloppe
+with all the needed time and amplitude information
+*/
 typedef struct
 {
+
     double attack_to_decay_time;
     double decay_to_sustain_time;
     double release_time;

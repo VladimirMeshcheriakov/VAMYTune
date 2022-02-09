@@ -1,6 +1,6 @@
 #include "adsr.h"
 
-
+//Init the ADSR enveloppe structure
 ADSR *init_ADSR_envelope(double attack_to_decay_time,
                          double decay_to_sustain_time,
                          double release_time,
@@ -23,7 +23,7 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
     return adsr;
 }
 
-
+//Get the amplitude at an instance T
 float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
 {
     float signal;

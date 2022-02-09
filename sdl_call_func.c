@@ -1,5 +1,6 @@
 #include "sdl_call_func.h"
 
+//Updates the effect table
 void update_effects(ud *data)
 {
     for (size_t i = 0; i < 13; i++)
@@ -15,6 +16,7 @@ void update_effects(ud *data)
     }
 }
 
+//Inits the sdl audio 
 int init_sdl_audio()
 {
     if (SDL_Init(SDL_INIT_AUDIO) < 0)
@@ -26,6 +28,7 @@ int init_sdl_audio()
     return 0;
 }
 
+// Sets and an audio device, or sends  -1 if error
 SDL_AudioDeviceID audio_spec_set_data(ud *data, void *audio_callback)
 {
     SDL_AudioSpec audio_spec_want, audio_spec;
@@ -54,6 +57,7 @@ SDL_AudioDeviceID audio_spec_set_data(ud *data, void *audio_callback)
     }
 }
 
+//Sets up a window on sdl
 SDL_Window *sdl_window_set()
 {
     SDL_Window *window;
@@ -74,6 +78,7 @@ SDL_Window *sdl_window_set()
     return window;
 }
 
+//Main loop of the app
 void run_app(int running,ud *data,SDL_Event event, const Uint8 *state)
 {
     while (running)
@@ -92,6 +97,7 @@ void run_app(int running,ud *data,SDL_Event event, const Uint8 *state)
     }
 }
 
+//Frees all the memory after the run_app
 void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data )
 {
     SDL_DestroyWindow(window);
@@ -100,6 +106,7 @@ void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_devic
     SDL_Quit();
 }
 
+//Main function that is called by the main
 void init_run_app(ud *data, size_t num_keys, void *audio_callback)
 {
     init_sdl_audio();

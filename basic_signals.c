@@ -1,5 +1,7 @@
 #include "basic_signals.h"
 
+
+//Contains all the basic signal forms
 float sine(float volume, float frequency, double time)
 {
     return volume * (sin(frequency * 2.0 * M_PI * time));

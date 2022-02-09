@@ -4,6 +4,8 @@
 #ifndef TIMESTAMP_H
 #define TIMESTAMP_H
 
+
+//A time instance for each note 
 typedef struct
 {
 
@@ -16,9 +18,6 @@ typedef struct
 } TimeStamp;
 
 
-
-
-TimeStamp *init_time_stamp();
 TimeStamp **init_time_table(int size);
 void free_time_table(TimeStamp **table,int size);
 void printf_time(TimeStamp **table,int size);

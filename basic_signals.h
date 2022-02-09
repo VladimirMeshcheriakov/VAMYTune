@@ -4,6 +4,7 @@
 #ifndef BASIC_SIGNALS_H
 #define BASIC_SIGNALS_H
 
+//Contains all the basic signal forms
 float logsin(float volume, float frequency, double time);
 float logcos(float volume, float frequency, double time);
 float sine(float volume, float frequency, double time);

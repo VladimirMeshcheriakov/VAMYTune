@@ -1,5 +1,6 @@
 #include "time_stamp.h"
 
+//Init one time stamp
 TimeStamp *init_time_stamp()
 {
     TimeStamp *time_instance = malloc(sizeof(TimeStamp));
@@ -10,7 +11,7 @@ TimeStamp *init_time_stamp()
     time_instance->release_stage = 0;
     return time_instance;
 }
-
+//Init a table of size size, of timestamp
 TimeStamp **init_time_table(int size)
 {
     TimeStamp **table = malloc(sizeof(TimeStamp*) * size);
@@ -21,6 +22,7 @@ TimeStamp **init_time_table(int size)
     return table;
 }
 
+//Free the time table
 void free_time_table(TimeStamp **table,int size)
 {
     for (size_t i = 0; i < size; i++)
@@ -30,6 +32,7 @@ void free_time_table(TimeStamp **table,int size)
     free(table);
 }
 
+//Print the time table of size size
 void printf_time(TimeStamp **table,int size)
 {
     for (size_t i = 0; i < size; i++)

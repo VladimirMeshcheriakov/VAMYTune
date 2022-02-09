@@ -1,6 +1,6 @@
 #include "keys.h"
 
-
+//Init the key structure, size is the number of keys
 Keys *init_keys(size_t size)
 {
     Keys *keys = malloc(sizeof(Keys));
@@ -9,7 +9,7 @@ Keys *init_keys(size_t size)
     keys->keys = calloc(size, sizeof(Uint8));
     return keys;
 }
-
+//Free the keys structure
 void free_keys(Keys *keys)
 {
     free(keys->effects);

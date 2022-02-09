@@ -1,7 +1,7 @@
 #include "userdata.h"
 #include "keys.h"
 
-
+//Init the User_Data structure, with a given enveloppe and the number of keys
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size)
 {
     ud *data = malloc(sizeof(ud));
@@ -16,6 +16,7 @@ ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size)
     return data;
 }
 
+//Free User_data structure
 void free_user_data(ud *data, size_t size)
 {
     free(data->adsr);

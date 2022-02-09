@@ -1,6 +1,6 @@
 #include "note_state_utils.h"
 
-
+//Init the vector of keys and their state
 void init_piano_keys(const Uint8 *state, ud *data)
 {
     Uint8 *piano_keys = data->all_keys->keys;
@@ -19,24 +19,37 @@ void init_piano_keys(const Uint8 *state, ud *data)
     piano_keys[12] = state[15];
 }
 
+
+//Do the key on properties
 void key_on(ud *data, int note_pos)
 {
+    //if this key has been pressed already, it does not have to be re-set
     if (!(data->time_table[note_pos]->press_time_set))
     {
+        //However if it has not been set
+        //Actual time set
         data->time_table[note_pos]->press_time = data->actual_time;
+        //Press was set
         data->time_table[note_pos]->press_time_set = 1;
+        //It has not yet been released
         data->time_table[note_pos]->released = 0;
     }
 }
 
+//Do the key off properties
 void key_off(ud *data, int note_pos)
 {
+    //It is no longer pressed
     data->time_table[note_pos]->press_time_set = 0;
+    //It is now released
     data->time_table[note_pos]->released = 1;
+    //We are enterring the release stage
     data->time_table[note_pos]->release_stage = 1;
+    //The stop time is saved
     data->time_table[note_pos]->stop_time = data->actual_time;
 }
 
+//Based on the state change executes a function 
 void note_state_change( ud *data, int key_id)
 {
     if (!(data->all_keys->keys[key_id]))
@@ -74,6 +87,7 @@ void print_keyboard_state(const Uint8 *piano_keys)
     printf("|_____|________|______|______|________|________|_____|_____|  \n");
 }
 
+//Main state function that verifies and triggers a state change on each note
 void note_state(const Uint8 *state, ud *data)
 {
     Uint8 *past_occ = data->all_keys->keys; 
@@ -142,5 +156,4 @@ void note_state(const Uint8 *state, ud *data)
         // STATE CHANGED
         note_state_change(data, 12);
     }
-    // update all the effect values for each note
 }
