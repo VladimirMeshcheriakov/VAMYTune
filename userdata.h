@@ -16,6 +16,8 @@ typedef struct
     TimeStamp **time_table;
     double actual_time;
     Keys *all_keys;
+    float octave;
+    Uint8 *side_effect;
 } ud;
 
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);

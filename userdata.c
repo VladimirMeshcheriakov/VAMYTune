@@ -11,6 +11,8 @@ ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size)
     data->samples_played = samples_played;
     Keys *all_keys = init_keys(size);
     data->all_keys = all_keys;
+    data->octave = 1.0;
+    data->side_effect = malloc(sizeof(Uint8)*2);
     // play the 0 frequency to have something to start with
     //13 for all the frequencies that can be palyed
     return data;
@@ -19,6 +21,7 @@ ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size)
 //Free User_data structure
 void free_user_data(ud *data, size_t size)
 {
+    free(data->side_effect);
     free(data->adsr);
     free_keys(data->all_keys);
     free_time_table(data->time_table,size);

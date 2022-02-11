@@ -17,6 +17,9 @@ void init_piano_keys(const Uint8 *state, ud *data)
     piano_keys[10] = state[12];
     piano_keys[11] = state[14];
     piano_keys[12] = state[15];
+    //Side effects
+    data->side_effect[0] = state[35];
+    data->side_effect[1] = state[46];
 }
 
 
@@ -85,6 +88,27 @@ void print_keyboard_state(const Uint8 *piano_keys)
         piano_keys[7], piano_keys[9], piano_keys[11], piano_keys[12]);
     printf("|     |        |      |      |        |        |     |     |  \n");
     printf("|_____|________|______|______|________|________|_____|_____|  \n");
+}
+
+void octave_set(const Uint8 *state, ud *data)
+{
+    //Minus
+    if(state[35] != data->side_effect[0])
+    {
+        if(state[35])
+        {
+            data->octave = data->octave/2.0;
+        }
+    }
+    //Plus
+    if(state[46] != data->side_effect[1])
+
+    {
+        if(state[46])
+        {
+            data->octave = data->octave*2.0;
+        }
+    }
 }
 
 //Main state function that verifies and triggers a state change on each note
@@ -156,4 +180,5 @@ void note_state(const Uint8 *state, ud *data)
         // STATE CHANGED
         note_state_change(data, 12);
     }
+    octave_set(state,data);
 }

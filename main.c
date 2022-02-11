@@ -27,10 +27,14 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     *samples_played += (len / 8);
 }
 
+
+
+
+
 int main(int argc, char *argv[])
 {
     // Init the ADSR envelope
-    ADSR *env = init_ADSR_envelope(0.1, 0.1, 0.05, 0.0, 1.0, 0.8, 0.0);
+    ADSR *env = init_ADSR_envelope(0.2, 0.2, 0.2, 0.0, 1.0, 0.6, 0.0);
     // Data to pass to the audio_callback function
     uint64_t samples_played = 0.;
     // <Number of keys (usually 13)>
@@ -41,3 +45,6 @@ int main(int argc, char *argv[])
     init_run_app(data,num_keys,audio_callback);
     return 0;
 }
+
+
+

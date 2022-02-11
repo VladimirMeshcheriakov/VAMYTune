@@ -13,9 +13,15 @@ float signal(float volume, double time, float freq)
 }
 
 //Functions that produces the octave of a signal
-float octave(float volume, double time, float freq)
+float octave_down(float volume, double time, float freq)
 {
     return signal(volume, time, freq * 0.5);
+}
+
+//Functions that produces the octave of a signal
+float octave_upp(float volume, double time, float freq)
+{
+    return signal(volume, time, freq * 2.0);
 }
 
 //Evaluate the stage execution of a signal and send the final value
@@ -27,7 +33,7 @@ float signal_treat(float volume, ud *data)
     {
         if ( data->all_keys->keys[i] || (data->time_table[i]->release_stage && data->all_keys->effects[i] > 0.0) )
         {
-            val += data->all_keys->effects[i] * signal(volume, data->actual_time, piano_note_to_freq(i));
+            val += data->all_keys->effects[i] * signal(volume, data->actual_time, data->octave * piano_note_to_freq(i));
         }
         else
         {
