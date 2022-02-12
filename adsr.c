@@ -43,7 +43,7 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
             // Normalise the constant between 1 and 0 and multiply by attack_top_amplitude
             // Makes an affine function from start amplitude to attack_top_amplitude
             signal = ((envelope->attack_top_amplitude - envelope->start_amplitude) * (actual_signal_time / envelope->attack_to_decay_time)) + envelope->start_amplitude;
-            printf("ATTACK %f, timestamp: %f\n", signal, actual_signal_time);
+            //printf("ATTACK %f, timestamp: %f\n", signal, actual_signal_time);
         }
         // if in the Decay phase
         // Seems to WORK
@@ -57,7 +57,7 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
             signal = envelope->attack_top_amplitude -
                      ((envelope->attack_top_amplitude - envelope->sustain_amplitude) *
                       ((actual_signal_time - envelope->attack_to_decay_time) / (envelope->decay_to_sustain_time)));
-            printf("DECAY %f, timestamp: %f\n", signal, actual_signal_time);
+            //printf("DECAY %f, timestamp: %f\n", signal, actual_signal_time);
         }
         return signal;
     }
@@ -75,7 +75,7 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
                 signal = envelope->sustain_amplitude -
                          ((envelope->sustain_amplitude - envelope->release_amplitude) *
                           ((actual_signal_time - (t_inst->stop_time - t_inst->press_time)) / (envelope->release_time)));
-                printf("RELEASE %f, timestamp: %f\n", signal, actual_signal_time);
+                //printf("RELEASE %f, timestamp: %f\n", signal, actual_signal_time);
             }
             else
             {
@@ -87,7 +87,7 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
         // Sustain
         signal = envelope->sustain_amplitude;
 
-        printf("SUSTAIN %f, timestamp: %f\n", signal, actual_signal_time);
+        //printf("SUSTAIN %f, timestamp: %f\n", signal, actual_signal_time);
         return signal;
     }
 }

@@ -13,6 +13,7 @@ ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size)
     data->all_keys = all_keys;
     data->octave = 1.0;
     data->side_effect = malloc(sizeof(Uint8)*2);
+    data->fstream = initArray(1);
     // play the 0 frequency to have something to start with
     //13 for all the frequencies that can be palyed
     return data;
@@ -25,5 +26,6 @@ void free_user_data(ud *data, size_t size)
     free(data->adsr);
     free_keys(data->all_keys);
     free_time_table(data->time_table,size);
+    freeArray(data->fstream);
     free(data);
 }

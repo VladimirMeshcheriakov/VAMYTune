@@ -1,6 +1,7 @@
 #include "time_stamp.h"
 #include "adsr.h"
 #include "keys.h"
+#include "dynamic_array.h"
 
 #ifndef USER_DATA_H
 #define USER_DATA_H
@@ -18,6 +19,7 @@ typedef struct
     Keys *all_keys;
     float octave;
     Uint8 *side_effect;
+    Array *fstream;
 } ud;
 
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);

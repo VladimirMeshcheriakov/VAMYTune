@@ -43,7 +43,6 @@ SDL_AudioDeviceID audio_spec_set_data(ud *data, void *audio_callback)
     audio_spec_want.userdata = data;
 
     SDL_AudioDeviceID audio_device_id = SDL_OpenAudioDevice(NULL, 0, &audio_spec_want, &audio_spec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-
     if (!audio_device_id)
     {
         fprintf(stderr, "Error creating SDL audio device. SDL_Error: %s\n",
@@ -111,6 +110,7 @@ void init_run_app(ud *data, size_t num_keys, void *audio_callback)
 {
     init_sdl_audio();
     SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data,audio_callback);
+    
     SDL_PauseAudioDevice(audio_device_id, 0);
     SDL_Window *window = sdl_window_set();
     SDL_Event event;
@@ -118,5 +118,7 @@ void init_run_app(ud *data, size_t num_keys, void *audio_callback)
     init_piano_keys(state, data);
     int running = 1;
     run_app(running,data,event,state);
+    record(*(data->samples_played),data->fstream->array,"Bach.wav");
+    //print_array(data->fstream);
     stop_app(num_keys,window,audio_device_id,data);
-}
+} 
