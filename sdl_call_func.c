@@ -1,6 +1,6 @@
 #include "sdl_call_func.h"
 
-//Updates the effect table
+// Updates the effect table
 void update_effects(ud *data)
 {
     for (size_t i = 0; i < 13; i++)
@@ -16,7 +16,7 @@ void update_effects(ud *data)
     }
 }
 
-//Inits the sdl audio 
+// Inits the sdl audio
 int init_sdl_audio()
 {
     if (SDL_Init(SDL_INIT_AUDIO) < 0)
@@ -56,7 +56,7 @@ SDL_AudioDeviceID audio_spec_set_data(ud *data, void *audio_callback)
     }
 }
 
-//Sets up a window on sdl
+// Sets up a window on sdl
 SDL_Window *sdl_window_set()
 {
     SDL_Window *window;
@@ -77,8 +77,8 @@ SDL_Window *sdl_window_set()
     return window;
 }
 
-//Main loop of the app
-void run_app(int running,ud *data,SDL_Event event, const Uint8 *state)
+// Main loop of the app
+void run_app(int running, ud *data, SDL_Event event, const Uint8 *state)
 {
     while (running)
     {
@@ -96,8 +96,8 @@ void run_app(int running,ud *data,SDL_Event event, const Uint8 *state)
     }
 }
 
-//Frees all the memory after the run_app
-void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data )
+// Frees all the memory after the run_app
+void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data)
 {
     SDL_DestroyWindow(window);
     SDL_CloseAudioDevice(audio_device_id);
@@ -105,20 +105,24 @@ void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_devic
     SDL_Quit();
 }
 
-//Main function that is called by the main
+// Main function that is called by the main
 void init_run_app(ud *data, size_t num_keys, void *audio_callback)
 {
     init_sdl_audio();
-    SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data,audio_callback);
-    
+    SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data, audio_callback);
+
     SDL_PauseAudioDevice(audio_device_id, 0);
     SDL_Window *window = sdl_window_set();
     SDL_Event event;
     const Uint8 *state = SDL_GetKeyboardState(NULL);
+
     init_piano_keys(state, data);
     int running = 1;
-    run_app(running,data,event,state);
-    record(*(data->samples_played),data->fstream->array,"Bach.wav");
-    //print_array(data->fstream);
-    stop_app(num_keys,window,audio_device_id,data);
-} 
+    run_app(running, data, event, state);
+    if(data->recorded_samples)
+    {
+        record((data->recorded_samples), data->fstream->array, "Bach.wav");
+    }
+    // print_array(data->fstream);
+    stop_app(num_keys, window, audio_device_id, data);
+}

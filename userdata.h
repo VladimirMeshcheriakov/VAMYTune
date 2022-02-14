@@ -13,6 +13,7 @@ for the sound execution
 typedef struct
 {
     uint64_t *samples_played;
+    uint64_t recorded_samples;
     ADSR *adsr;
     TimeStamp **time_table;
     double actual_time;
@@ -20,6 +21,7 @@ typedef struct
     float octave;
     Uint8 *side_effect;
     Array *fstream;
+    int record;
 } ud;
 
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);
