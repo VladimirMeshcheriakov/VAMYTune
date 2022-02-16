@@ -32,6 +32,6 @@ typedef struct
     uint32_t fSubchunk2Size;
 } file_format_header;
 
-bool set_header(size_t pairAmount, file_format_header *hdr)
+bool set_header(size_t pairAmount, file_format_header *hdr);
 
 #endif

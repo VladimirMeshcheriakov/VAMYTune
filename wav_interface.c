@@ -44,7 +44,7 @@ FILE *open_WAV(const char *filename)
     return fout;
 }
 //Writes to a WAV file, if such file is not yet created, creates the file and writes to it
-void record(uint64_t sample_size, float *sound, const char *file_name, const char *type)
+bool record(uint64_t sample_size, float *sound, const char *file_name, const char *type)
 {
     // If no sound buffer is given or no filename provided, stop execution
     if (sound == NULL || file_name == NULL)
