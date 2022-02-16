@@ -24,6 +24,10 @@ void init_piano_keys(const Uint8 *state, ud *data)
     data->side_effect[2] = state[40];
     //Backspace
     data->side_effect[3] = state[42];
+    //P - > playback
+    data->side_effect[4] = state[0];
+    //O -> stop playback
+    data->side_effect[5] = state[0];
 }
 
 
@@ -135,6 +139,28 @@ void recording_set(const Uint8 *state, ud *data)
     }
 }
 
+void playback_set(const Uint8 *state, ud *data)
+{
+    //P
+    if(state[19] != data->side_effect[4])
+    {
+        if(state[19])
+        {
+            data->playback = 1;
+        }
+    }
+    //O
+    if(state[18] != data->side_effect[5])
+    {
+        if(state[18])
+        {
+            data->playback= 0;
+        }
+    }
+}
+
+
+
 
 //Main state function that verifies and triggers a state change on each note
 void note_state(const Uint8 *state, ud *data)
@@ -207,4 +233,5 @@ void note_state(const Uint8 *state, ud *data)
     }
     octave_set(state,data);
     recording_set(state,data);
+    playback_set(state,data);
 }

@@ -1,200 +1,111 @@
 #include "wav_interface.h"
-
-/****************************************************
-* From http://stackoverflow.com/questions/12791864/ *
-*      c-program-to-check-little-vs-big-endian      *
-****************************************************/
-static bool is_little_endian() 
-{
-    volatile uint32_t i = 0x01234567;
-    return (*((uint8_t*)(&i))) == 0x67;
-}
-
-static uint16_t little_endian_uint16_t(uint16_t num) 
-{
-    return (((0xff00 & num) >> 8) | ((0xff & num) << 8));
-}
-
-static uint32_t little_endian_uint32_t(uint32_t num) {
-    return ((((0xff000000 & num) >> 24) | 
-             ((0xff & num) << 24)       | 
-             ((0xff0000 & num) >> 8))   | 
-             ((0xff00 & num) << 8));
-}
-
-static float little_endian_float( const float inFloat )
-{
-   float retVal;
-   char *floatToConvert = ( char* ) & inFloat;
-   char *returnFloat = ( char* ) & retVal;
-
-   // swap the bytes into a temporary buffer
-   returnFloat[0] = floatToConvert[3];
-   returnFloat[1] = floatToConvert[2];
-   returnFloat[2] = floatToConvert[1];
-   returnFloat[3] = floatToConvert[0];
-
-   return retVal;
-}
-
 #pragma pack(0)
-typedef struct {
 
-    /***************
-    * RIFF header. *
-    ***************/
-    char fChunkID[4];
-    uint32_t fChunkSize;
-    char fFormat[4];
-
-    /******************
-    * "fmt" subchunk. *
-    ******************/
-    char fSubchunk1ID[4];
-    uint32_t fSubchunk1Size;
-    uint16_t fAudioFormat;
-    uint16_t fNumChannels;
-    uint32_t fSampleRate;
-    uint32_t fByteRate;
-    uint16_t fBlockAlign;
-    uint16_t fBitsPerSample;
-
-    /*******************
-    * "data" subchunk. *
-    *******************/
-    char fSubchunk2ID[4];
-    uint32_t fSubchunk2Size;
-} file_format_header;
-
-
-bool WriteWavePCM(float* sound, size_t pairAmount, const char* fileName)
+//Calculates the size of a file in bytes
+long int findSize(const char *file_name)
 {
-    //If no sound buffer is given or no filename provided, stop execution
-    if (sound == NULL || fileName == NULL) 
+    // opening the file in read mode
+    FILE* fp = fopen(file_name, "r");
+  
+    // checking if the file exist or not
+    if (fp == NULL) {
+        printf("File Not Found!\n");
+        return -1;
+    }
+  
+    fseek(fp, 0L, SEEK_END);
+  
+    // calculating the size of the file
+    long int res = ftell(fp);
+  
+    // closing the file
+    fclose(fp);
+  
+    return res;
+}
+// Opens a WAV file
+//DONT FORGET TO CLOSE MANUALLY
+FILE *open_WAV(const char *filename)
+{
+    long int file_size = findSize(filename);
+    // Pointer to the file to which we will write
+    FILE *fout = fopen(filename, "r");
+    file_format_header hdr;
+    // Read the header of the file
+    printf("Total file size is %ld bytes\n",file_size);
+    size_t file_header_read = fread(&hdr, sizeof(file_format_header), 1, fout);
+    if (file_header_read != 1)
+    {
+        printf("ERROR: Uanble to read the WAV header\n");
+        fclose(fout);
+    }
+    printf("Header file size is %ld in bytes\n",file_header_read);
+    printf("Size left for sound is %ld bytes\n",file_size - file_header_read);
+    return fout;
+}
+//Writes to a WAV file, if such file is not yet created, creates the file and writes to it
+void record(uint64_t sample_size, float *sound, const char *file_name, const char *type)
+{
+    // If no sound buffer is given or no filename provided, stop execution
+    if (sound == NULL || file_name == NULL)
     {
         printf("ERROR: No filename, or no sound buffer\n");
         return false;
     }
-    //Pointer to the file to which we will write
-    FILE* fout = fopen(fileName, "wb");
-    //If file was not opened correctly, stop execution
-    if (fout == NULL) 
+    // Pointer to the file to which we will write
+    FILE *fout = fopen(file_name, type);
+    // If file was not opened correctly, stop execution
+    if (fout == NULL)
     {
-        printf("ERROR: Cannot open the file: %s\n",fileName);
+        printf("ERROR: Cannot open the file: %s\n", file_name);
         return false;
     }
 
-    /******************************
-    *  Magic file format strings. *
-    ******************************/
-    static const char fChunkID[]     = {'R', 'I', 'F', 'F'};
-    static const char fFormat[]      = {'W', 'A', 'V', 'E'};
-    static const char fSubchunk1ID[] = {'f', 'm', 't', ' '};
-    static const char fSubchunk2ID[] = {'d', 'a', 't', 'a'};
-
-    /*****************************************************************
-    * Can't make the following local static, as we need to check the *
-    * endianness.                                                    *
-    *****************************************************************/
-    static const uint16_t N_CHANNELS                   = 2;
-    static const uint32_t fSubchunk1Size               = 16;
-    static const uint16_t fAudioFormat                 = 3;
-    static const uint16_t fBitsPerSample               = 32;
-    static const uint32_t fRIFFChunkDescriptorLength   = 12;
-    static const uint32_t fFmtSubChunkDescriptorLength = 24;
-
     file_format_header hdr;
-
-    /**************************************
-    * Load the magic file format strings. *
-    **************************************/
-    for (size_t i = 0; i < 4; ++i) 
-    {
-        hdr.fChunkID[i]     = fChunkID[i];
-        hdr.fFormat[i]      = fFormat[i];
-        hdr.fSubchunk1ID[i] = fSubchunk1ID[i];
-        hdr.fSubchunk2ID[i] = fSubchunk2ID[i];
-    }
-
-    /********************************
-    * WriteWavePCM() configuration: *
-    * - 2 channels,                 *
-    * - frequency 44100 Hz.         *
-    ********************************/
-    static const uint32_t SAMPLE_RATE   = 44100;
-    static const uint16_t BITS_PER_BYTE = 8;
-
-    const uint32_t fByteRate = SAMPLE_RATE * N_CHANNELS * fBitsPerSample / 
-                               BITS_PER_BYTE;
-
-    const uint16_t fBlockAlign = N_CHANNELS * fBitsPerSample / BITS_PER_BYTE;
-
-    const uint32_t fSubchunk2Size = pairAmount * N_CHANNELS * fBitsPerSample / 
-                                    BITS_PER_BYTE;
-
-    const uint32_t fChunkSize = fRIFFChunkDescriptorLength + 
-                                fFmtSubChunkDescriptorLength + fSubchunk2Size;
-
-    
-
-    bool little_endian = is_little_endian();
-
-    if (!little_endian) 
-    {
-        hdr.fAudioFormat   = little_endian_uint16_t(hdr.fAudioFormat);
-        hdr.fBitsPerSample = little_endian_uint16_t(hdr.fBitsPerSample);
-        hdr.fBlockAlign    = little_endian_uint16_t(hdr.fBlockAlign);
-        hdr.fByteRate      = little_endian_uint32_t(hdr.fByteRate);
-        hdr.fChunkSize     = little_endian_uint32_t(hdr.fChunkSize);
-        hdr.fNumChannels   = little_endian_uint16_t(hdr.fNumChannels);
-        hdr.fSampleRate    = little_endian_uint32_t(hdr.fSampleRate);
-        hdr.fSubchunk1Size = little_endian_uint32_t(hdr.fSubchunk1Size);
-        hdr.fSubchunk2Size = little_endian_uint32_t(hdr.fSubchunk2Size);
-    }
-    else
-    {
-        hdr.fAudioFormat   = fAudioFormat;
-        hdr.fBitsPerSample = fBitsPerSample;
-        hdr.fBlockAlign    = fBlockAlign;
-        hdr.fByteRate      = fByteRate;
-        hdr.fChunkSize     = fChunkSize;
-        hdr.fNumChannels   = N_CHANNELS;
-        hdr.fSampleRate    = SAMPLE_RATE;
-        hdr.fSubchunk1Size = fSubchunk1Size;
-        hdr.fSubchunk2Size = fSubchunk2Size;
-    }
-
-    /******************************** 
-    * Write the file format header. *
-    ********************************/
+    //Creates the header for the file
+    bool little_endian = set_header(sample_size,&hdr);
+    //Write the created header to the file
     size_t ws = fwrite(&hdr, sizeof(hdr), 1, fout);
 
-    if (ws != 1) 
+    if (ws != 1)
     {
         printf("ERROR: Uanble to write the WAV header\n");
         fclose(fout);
         return false;
     }
-    
-    //If little endian do the sound conversion
-    if (!little_endian) 
+
+    // If little endian do the sound conversion
+    if (!little_endian)
     {
         printf("smalll endiannnnn\n");
-        for (int i = 0; i < pairAmount * N_CHANNELS; ++i) 
+        for (int i = 0; i < sample_size * hdr.fNumChannels; ++i)
         {
             sound[i] = little_endian_float(sound[i]);
         }
     }
-
-    /************************ 
-    * Write the sound data. *
-    ************************/
-    ws = fwrite(sound, sizeof(float), pairAmount* N_CHANNELS, fout);
+    //Write the sound data
+    ws = fwrite(sound, sizeof(float), sample_size * hdr.fNumChannels, fout);
     fclose(fout);
-    return ws == pairAmount * N_CHANNELS;
+    return ws == sample_size * hdr.fNumChannels;
 }
 
-void record(uint64_t sample, float * sound, const char * filename)
+/*Reads 8 bytes (2 float values) to a sound buffer from the file f_in,
+This function allows to have playback, without destroying the data in the wav file
+*/
+void read_from_wav(FILE* f_in, const char *filename, float *sound)
 {
-    WriteWavePCM(sound,sample,filename);
+    // If no sound buffer is given or no filename provided, stop execution
+    if (sound == NULL || filename == NULL)
+    {
+        printf("ERROR: No filename, or no sound buffer\n");
+    }
+    size_t file_sound = fread(sound, sizeof(float), 2, f_in);
+    //printf("Sound file size is %ld in bytes\n",file_sound);
+    if (file_sound != 2)
+    {
+        printf("ERROR: Uanble to read the WAV sound\n");
+        fclose(f_in);
+    }
 }
+
+

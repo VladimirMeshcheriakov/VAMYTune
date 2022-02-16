@@ -80,6 +80,8 @@ SDL_Window *sdl_window_set()
 // Main loop of the app
 void run_app(int running, ud *data, SDL_Event event, const Uint8 *state)
 {
+    data->fout = open_WAV("Bach.wav");
+    data->fout_size = findSize("Bach.wav");
     while (running)
     {
         update_effects(data);
@@ -119,10 +121,11 @@ void init_run_app(ud *data, size_t num_keys, void *audio_callback)
     init_piano_keys(state, data);
     int running = 1;
     run_app(running, data, event, state);
+    fclose(data->fout);
     if(data->recorded_samples)
     {
-        record((data->recorded_samples), data->fstream->array, "Bach.wav");
+        record((data->recorded_samples), data->fstream->array, "Bach.wav","wb");
     }
-    // print_array(data->fstream);
+    
     stop_app(num_keys, window, audio_device_id, data);
 }

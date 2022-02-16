@@ -14,6 +14,7 @@ typedef struct
 {
     uint64_t *samples_played;
     uint64_t recorded_samples;
+    uint64_t played_samples;
     ADSR *adsr;
     TimeStamp **time_table;
     double actual_time;
@@ -22,6 +23,10 @@ typedef struct
     Uint8 *side_effect;
     Array *fstream;
     int record;
+    int playback;
+    float *playback_buffer;
+    FILE * fout;
+    long int fout_size;
 } ud;
 
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);
