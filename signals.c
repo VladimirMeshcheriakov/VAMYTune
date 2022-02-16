@@ -1,7 +1,7 @@
 #include "signals.h"
 #include "basic_signals.h"
 // Function that produces a signal
-float signal(float volume, double time, float freq)
+float create_signal(float volume, double time, float freq)
 {
     // Orgue
     // sine(volume, freq, time) + 0.5 * saw2(volume, freq*2.0, time,4)+ 0.2 *
@@ -16,13 +16,13 @@ float signal(float volume, double time, float freq)
 // Functions that produces the octave of a signal
 float octave_down(float volume, double time, float freq)
 {
-    return signal(volume, time, freq * 0.5);
+    return create_signal(volume, time, freq * 0.5);
 }
 
 // Functions that produces the octave of a signal
 float octave_upp(float volume, double time, float freq)
 {
-    return signal(volume, time, freq * 2.0);
+    return create_signal(volume, time, freq * 2.0);
 }
 
 // Evaluate the stage execution of a signal and send the final value
@@ -33,7 +33,7 @@ float signal_treat(float volume, ud *data)
     {
         if (data->all_keys->keys[i] || (data->time_table[i]->release_stage && data->all_keys->effects[i] > 0.0))
         {
-            val += data->all_keys->effects[i] * signal(volume, data->actual_time, data->octave * piano_note_to_freq(i));
+            val += data->all_keys->effects[i] * create_signal(volume, data->actual_time, data->octave * piano_note_to_freq(i));
         }
         else
         {
