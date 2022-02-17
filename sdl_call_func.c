@@ -99,16 +99,16 @@ void run_app(int running, ud *data, SDL_Event event, const Uint8 *state)
 }
 
 // Frees all the memory after the run_app
-void stop_app(size_t num_keys, SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data)
+void stop_app(SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data)
 {
     SDL_DestroyWindow(window);
     SDL_CloseAudioDevice(audio_device_id);
-    free_user_data(data, num_keys);
+    free_user_data(data);
     SDL_Quit();
 }
 
 // Main function that is called by the main
-void init_run_app(ud *data, size_t num_keys, void *audio_callback)
+void init_run_app(ud *data,void *audio_callback)
 {
     init_sdl_audio();
     SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data, audio_callback);
@@ -127,5 +127,5 @@ void init_run_app(ud *data, size_t num_keys, void *audio_callback)
         record(data->wav_manager->recorded_samples, data->fstream->array, "Bach.wav","wb");
     }
     
-    stop_app(num_keys, window, audio_device_id, data);
+    stop_app(window, audio_device_id, data);
 }

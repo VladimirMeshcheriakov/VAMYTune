@@ -45,11 +45,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
 
 }
 
-
-
-
-
-int main(int argc, char *argv[])
+int main()
 {
     // Init the ADSR envelope
     ADSR *env = init_ADSR_envelope(0.2, 0.2, 0.2, 0.0, 1.0, 0.6, 0.0);
@@ -60,7 +56,7 @@ int main(int argc, char *argv[])
     //Init the data
     ud *data = init_ud(&samples_played, env, num_keys);
     //Run the application
-    init_run_app(data,num_keys,audio_callback);
+    init_run_app(data,audio_callback);
     return 0;
 }
 

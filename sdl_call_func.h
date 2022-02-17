@@ -8,6 +8,6 @@
 #define SDL_CALL_FUNC_H
 
 
-void init_run_app(ud *data, size_t num_keys, void *audio_callback);
+void init_run_app(ud *data,  void *audio_callback);
 
 #endif

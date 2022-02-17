@@ -5,13 +5,12 @@
 ud *init_ud(uint64_t *samples_played, ADSR *env, size_t size)
 {
     ud *data = malloc(sizeof(ud));
-    TimeManagement * time_management = init_time_management(13);
+    TimeManagement * time_management = init_time_management(size);
     data->adsr = env;
     data->time_management = time_management;
     data->samples_played = samples_played;
     Keys *all_keys = init_keys(size);
     data->all_keys = all_keys;
-    data->octave = 1.0;
     data->side_effect = malloc(sizeof(Uint8) * 6);
     data->fstream = initArray(1);
     data->wav_manager = init_wav_management();
@@ -23,7 +22,7 @@ ud *init_ud(uint64_t *samples_played, ADSR *env, size_t size)
 }
 
 // Free User_data structure
-void free_user_data(ud *data, size_t size)
+void free_user_data(ud *data)
 {
     free(data->side_effect);
     free(data->adsr);

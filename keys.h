@@ -15,6 +15,7 @@ typedef struct
     Uint8 *keys;
     double *effects;
     size_t size;
+    float octave;
 }Keys;
 
 

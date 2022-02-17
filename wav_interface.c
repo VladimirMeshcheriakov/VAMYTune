@@ -1,8 +1,17 @@
 #include "wav_interface.h"
 #pragma pack(0)
 
+
+/**
+ * TODO: Functions to implement
+ * ! Sequential recording
+ * ! Fast-forward
+ * ! Rewind
+ * ! Try to manage all that with double keys, ex: Ctrl+p
+ */
+
 //Calculates the size of a file in bytes
-long int findSize(const char *file_name)
+uint64_t findSize(const char *file_name)
 {
     // opening the file in read mode
     FILE* fp = fopen(file_name, "r");
@@ -16,7 +25,7 @@ long int findSize(const char *file_name)
     fseek(fp, 0L, SEEK_END);
   
     // calculating the size of the file
-    long int res = ftell(fp);
+    uint64_t res = ftell(fp);
   
     // closing the file
     fclose(fp);
@@ -78,7 +87,7 @@ bool record(uint64_t sample_size, float *sound, const char *file_name, const cha
     if (!little_endian)
     {
         printf("smalll endiannnnn\n");
-        for (int i = 0; i < sample_size * hdr.fNumChannels; ++i)
+        for (uint64_t i = 0; i < sample_size * hdr.fNumChannels; ++i)
         {
             sound[i] = little_endian_float(sound[i]);
         }

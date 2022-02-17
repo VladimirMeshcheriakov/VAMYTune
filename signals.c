@@ -38,7 +38,7 @@ float signal_treat(float volume, ud *data)
     {
         if (data->all_keys->keys[i] || (data->time_management->time_table[i]->release_stage && data->all_keys->effects[i] > 0.0))
         {
-            val += data->all_keys->effects[i] * create_signal(volume, data->time_management->actual_time, data->octave * piano_note_to_freq(i));
+            val += data->all_keys->effects[i] * create_signal(volume, data->time_management->actual_time, data->all_keys->octave * piano_note_to_freq(i));
         }
         else
         {

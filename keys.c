@@ -7,6 +7,7 @@ Keys *init_keys(size_t size)
     keys->size = size;
     keys->effects = calloc(size, sizeof(double));
     keys->keys = calloc(size, sizeof(Uint8));
+    keys->octave = 1.0;
     return keys;
 }
 //Free the keys structure

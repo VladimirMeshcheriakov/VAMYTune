@@ -105,7 +105,7 @@ void octave_set(const Uint8 *state, ud *data)
     {
         if(state[35])
         {
-            data->octave = data->octave/2.0;
+            data->all_keys->octave = data->all_keys->octave/2.0;
         }
     }
     //Plus
@@ -114,7 +114,7 @@ void octave_set(const Uint8 *state, ud *data)
     {
         if(state[46])
         {
-            data->octave = data->octave*2.0;
+            data->all_keys->octave = data->all_keys->octave*2.0;
         }
     }
 }

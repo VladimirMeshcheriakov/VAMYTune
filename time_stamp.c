@@ -12,7 +12,7 @@ TimeStamp *init_time_stamp()
     return time_instance;
 }
 //Init a table of size size, of timestamp
-TimeStamp **init_time_table(int size)
+TimeStamp **init_time_table(size_t size)
 {
     TimeStamp **table = malloc(sizeof(TimeStamp*) * size);
     for (size_t i = 0; i < size; i++)
@@ -22,7 +22,7 @@ TimeStamp **init_time_table(int size)
     return table;
 }
 // Create an instance of time management struct
-TimeManagement *  init_time_management(int size)
+TimeManagement *  init_time_management(size_t size)
 {
     TimeManagement * all_time = malloc(sizeof(TimeManagement));
     TimeStamp **table = init_time_table(size);
@@ -33,7 +33,7 @@ TimeManagement *  init_time_management(int size)
 }
 
 //Free the time table
-void free_time_table(TimeStamp **table,int size)
+void free_time_table(TimeStamp **table,size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
@@ -50,7 +50,7 @@ void free_time_management(TimeManagement * all_time)
 }
 
 //Print the time table of size size
-void printf_time(TimeStamp **table,int size)
+void printf_time(TimeStamp **table,size_t size)
 {
     for (size_t i = 0; i < size; i++)
     {
