@@ -18,7 +18,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         //Calculate the actual programm run-time
         double time = (*samples_played + sid) / 44100.0;
         //Set the actual time in the data
-        us_d->actual_time = time;
+        us_d->time_management->actual_time = time;
         //Call the function that calculates the signal outhput at the current time
         float val = signal_treat(volume,us_d);
         if(us_d->playback && (us_d->fout_size > us_d->played_samples+44))

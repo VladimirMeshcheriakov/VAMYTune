@@ -1,5 +1,10 @@
 #include "signals.h"
 #include "basic_signals.h"
+
+float FLO(float volume, double time, float freq)
+{
+    return ttans(volume,freq,time); 
+}
 // Function that produces a signal
 float create_signal(float volume, double time, float freq)
 {
@@ -9,8 +14,8 @@ float create_signal(float volume, double time, float freq)
     // time,0.25);
 
     return sine(volume, freq, time) + 0.5 * saw2(volume, freq*2.0, time,4)+ 0.2 *
-     triangle(volume, freq*4.0, time)  +  0.1 * square(volume, freq*5.0,
-     time,0.25);
+    triangle(volume, freq*4.0, time)  +  0.1 * square(volume, freq*5.0,
+    time,0.25);
 }
 
 // Functions that produces the octave of a signal
@@ -31,13 +36,13 @@ float signal_treat(float volume, ud *data)
     float val = 0.0;
     for (int i = 0; i < 13; i++)
     {
-        if (data->all_keys->keys[i] || (data->time_table[i]->release_stage && data->all_keys->effects[i] > 0.0))
+        if (data->all_keys->keys[i] || (data->time_management->time_table[i]->release_stage && data->all_keys->effects[i] > 0.0))
         {
-            val += data->all_keys->effects[i] * create_signal(volume, data->actual_time, data->octave * piano_note_to_freq(i));
+            val += data->all_keys->effects[i] * create_signal(volume, data->time_management->actual_time, data->octave * piano_note_to_freq(i));
         }
         else
         {
-            data->time_table[i]->release_stage = 0;
+            data->time_management->time_table[i]->release_stage = 0;
         }
     }
     return val;

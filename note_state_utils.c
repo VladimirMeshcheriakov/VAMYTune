@@ -35,15 +35,15 @@ void init_piano_keys(const Uint8 *state, ud *data)
 void key_on(ud *data, int note_pos)
 {
     //if this key has been pressed already, it does not have to be re-set
-    if (!(data->time_table[note_pos]->press_time_set))
+    if (!(data->time_management->time_table[note_pos]->press_time_set))
     {
         //However if it has not been set
         //Actual time set
-        data->time_table[note_pos]->press_time = data->actual_time;
+        data->time_management->time_table[note_pos]->press_time = data->time_management->actual_time;
         //Press was set
-        data->time_table[note_pos]->press_time_set = 1;
+        data->time_management->time_table[note_pos]->press_time_set = 1;
         //It has not yet been released
-        data->time_table[note_pos]->released = 0;
+        data->time_management->time_table[note_pos]->released = 0;
     }
 }
 
@@ -51,13 +51,13 @@ void key_on(ud *data, int note_pos)
 void key_off(ud *data, int note_pos)
 {
     //It is no longer pressed
-    data->time_table[note_pos]->press_time_set = 0;
+    data->time_management->time_table[note_pos]->press_time_set = 0;
     //It is now released
-    data->time_table[note_pos]->released = 1;
+    data->time_management->time_table[note_pos]->released = 1;
     //We are enterring the release stage
-    data->time_table[note_pos]->release_stage = 1;
+    data->time_management->time_table[note_pos]->release_stage = 1;
     //The stop time is saved
-    data->time_table[note_pos]->stop_time = data->actual_time;
+    data->time_management->time_table[note_pos]->stop_time = data->time_management->actual_time;
 }
 
 //Based on the state change executes a function 

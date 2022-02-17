@@ -21,6 +21,16 @@ TimeStamp **init_time_table(int size)
     }
     return table;
 }
+// Create an instance of time management struct
+TimeManagement *  init_time_management(int size)
+{
+    TimeManagement * all_time = malloc(sizeof(TimeManagement));
+    TimeStamp **table = init_time_table(size);
+    all_time->time_table = table;
+    all_time->actual_time = 0;
+    all_time->size = size;
+    return all_time;
+}
 
 //Free the time table
 void free_time_table(TimeStamp **table,int size)
@@ -32,6 +42,13 @@ void free_time_table(TimeStamp **table,int size)
     free(table);
 }
 
+//Free the time management struct
+void free_time_management(TimeManagement * all_time)
+{
+    free_time_table(all_time->time_table, all_time->size);
+    free(all_time);
+}
+
 //Print the time table of size size
 void printf_time(TimeStamp **table,int size)
 {
@@ -40,5 +57,4 @@ void printf_time(TimeStamp **table,int size)
         printf("note: %ld, press: %f, stop: %f |",i,table[i]->press_time,table[i]->stop_time);
         printf("\n");
     }
-
 }

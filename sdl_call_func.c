@@ -5,9 +5,9 @@ void update_effects(ud *data)
 {
     for (size_t i = 0; i < 13; i++)
     {
-        if (data->all_keys->keys[i] || data->time_table[i]->release_stage)
+        if (data->all_keys->keys[i] || data->time_management->time_table[i]->release_stage)
         {
-            data->all_keys->effects[i] = adsr_get_amplitude(data->actual_time, data->adsr, data->time_table[i]);
+            data->all_keys->effects[i] = adsr_get_amplitude(data->time_management->actual_time, data->adsr, data->time_management->time_table[i]);
         }
         else
         {
