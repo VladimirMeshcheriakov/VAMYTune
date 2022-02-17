@@ -126,7 +126,7 @@ void recording_set(const Uint8 *state, ud *data)
     {
         if(state[40])
         {
-            data->record = 1;
+            data->wav_manager->record = 1;
         }
     }
     //Stop
@@ -134,7 +134,7 @@ void recording_set(const Uint8 *state, ud *data)
     {
         if(state[42])
         {
-            data->record = 0;
+            data->wav_manager->record = 0;
         }
     }
 }
@@ -146,7 +146,7 @@ void playback_set(const Uint8 *state, ud *data)
     {
         if(state[19])
         {
-            data->playback = 1;
+            data->wav_manager->playback = 1;
         }
     }
     //O
@@ -154,7 +154,7 @@ void playback_set(const Uint8 *state, ud *data)
     {
         if(state[18])
         {
-            data->playback= 0;
+            data->wav_manager->playback= 0;
         }
     }
 }

@@ -122,9 +122,9 @@ void init_run_app(ud *data, size_t num_keys, void *audio_callback)
     int running = 1;
     run_app(running, data, event, state);
     fclose(data->fout);
-    if(data->recorded_samples)
+    if(data->wav_manager->recorded_samples)
     {
-        record((data->recorded_samples), data->fstream->array, "Bach.wav","wb");
+        record(data->wav_manager->recorded_samples, data->fstream->array, "Bach.wav","wb");
     }
     
     stop_app(num_keys, window, audio_device_id, data);

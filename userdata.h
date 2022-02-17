@@ -2,6 +2,7 @@
 #include "adsr.h"
 #include "keys.h"
 #include "dynamic_array.h"
+#include "wav_management.h"
 
 #ifndef USER_DATA_H
 #define USER_DATA_H
@@ -28,6 +29,11 @@ for the sound execution
 
 
 
+
+
+
+
+
 typedef struct
 {
     //Samples played by the programm
@@ -46,18 +52,9 @@ typedef struct
     Uint8 *side_effect;
     //Dynamic array representing the data stream
     Array *fstream;
-    
 
-    // Buffer including a table of 2 floats to be passed to the read/write function
-    float *playback_buffer;
-    //Samples recorded, passed to the recoding function
-    uint64_t recorded_samples;
-    //Samples played from the chosen file
-    uint64_t played_samples;
-    // 1 to set the record 0 to unset
-    int record;
-    // 1 to set playback, 0 to unset
-    int playback;
+    //Manageement of record and playback functionality
+    WavManagement * wav_manager;
 
     // Pointer to the file from which the data is read
     FILE * fout;

@@ -21,22 +21,22 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         us_d->time_management->actual_time = time;
         //Call the function that calculates the signal outhput at the current time
         float val = signal_treat(volume,us_d);
-        if(us_d->playback && (us_d->fout_size > us_d->played_samples+44))
+        if(us_d->wav_manager->playback && (us_d->fout_size > us_d->wav_manager->played_samples+44))
         {
-            read_from_wav(us_d->fout,"Bach.wav",us_d->playback_buffer);
-            printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->played_samples);
-            val += us_d->playback_buffer[0];
-            us_d->played_samples +=8;
+            read_from_wav(us_d->fout,"Bach.wav",us_d->wav_manager->playback_buffer);
+            printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
+            val += us_d->wav_manager->playback_buffer[0];
+            us_d->wav_manager->played_samples +=8;
 
         }
         //Put the signal value into the stream
         fstream[2 * sid + 0] = val; /* L */
         fstream[2 * sid + 1] = val; /* R */
-        if(us_d->record)
+        if(us_d->wav_manager->record)
         {
             insertArray(us_d->fstream,val);
             insertArray(us_d->fstream,val);
-            us_d->recorded_samples +=1;
+            us_d->wav_manager->recorded_samples +=1;
         }
         //printf("time:%f, data %f\n",time,val);
     }

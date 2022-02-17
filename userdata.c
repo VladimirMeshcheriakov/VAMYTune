@@ -14,11 +14,7 @@ ud *init_ud(uint64_t *samples_played, ADSR *env, size_t size)
     data->octave = 1.0;
     data->side_effect = malloc(sizeof(Uint8) * 6);
     data->fstream = initArray(1);
-    data->record = 0;
-    data->recorded_samples = 0;
-    data->played_samples = 0;
-    data->playback = 0;
-    data->playback_buffer = calloc(2,sizeof(float));
+    data->wav_manager = init_wav_management();
     data->fout_size = 0;
     // play the 0 frequency to have something to start with
     // 13 for all the frequencies that can be palyed
@@ -34,6 +30,6 @@ void free_user_data(ud *data, size_t size)
     free_keys(data->all_keys);
     free_time_management(data->time_management);
     freeArray(data->fstream);
-    free(data->playback_buffer);
+    free_wav_management(data->wav_manager);
     free(data);
 }
