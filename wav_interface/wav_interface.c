@@ -4,7 +4,6 @@
 
 /**
  * TODO: Functions to implement
- * ! Sequential recording
  * ! Fast-forward
  * ! Rewind
  * ! Try to manage all that with double keys, ex: Ctrl+p

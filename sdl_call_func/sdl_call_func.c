@@ -1,21 +1,5 @@
 #include "sdl_call_func.h"
 
-// Updates the effect table
-void update_effects(ud *data)
-{
-    for (size_t i = 0; i < 13; i++)
-    {
-        if (data->all_keys->keys[i] || data->time_management->time_table[i]->release_stage)
-        {
-            data->all_keys->effects[i] = adsr_get_amplitude(data->time_management->actual_time, data->adsr, data->time_management->time_table[i]);
-        }
-        else
-        {
-            data->all_keys->effects[i] = 0;
-        }
-    }
-}
-
 // Inits the sdl audio
 int init_sdl_audio()
 {
@@ -77,22 +61,84 @@ SDL_Window *sdl_window_set()
     return window;
 }
 
+
+// Updates the effect table
+void update_effects(ud *data)
+{
+    // printf_time(data->time_management->time_table,1);
+    for (size_t i = 0; i < 127; i++)
+    {
+        if (data->all_keys->keys[i] || data->time_management->time_table[i]->release_stage)
+        {
+            data->all_keys->effects[i] = adsr_get_amplitude(data->time_management->actual_time, data->adsr, data->time_management->time_table[i]);
+            // printf("%f\n", data->all_keys->effects[i]);
+        }
+        else
+        {
+            data->all_keys->effects[i] = 0;
+        }
+    }
+}
+
+
+
 // Main loop of the app
-void run_app(int running, ud *data, SDL_Event event, const Uint8 *state)
+void run_app(int running, ud *data,  Uint8 *state, int argc, char *argv[])
 {
     data->fout = open_WAV("Bach.wav");
     data->fout_size = findSize("Bach.wav");
+    struct pollfd *pfds;
+    int npfds;
+    int err;
+
+    init_seq();
+
+    if (parse_input(argc, argv) != -1)
+    {
+        printf("Parsing error\n");
+    }
+
+    snd_seq_t * seq = create_port();
+    int port_count = connect_ports(seq);
+
+    if (port_count > 0)
+        printf("Waiting for data.");
+    else
+        printf("Waiting for data at port %d:0.",
+               snd_seq_client_id(seq));
+    printf(" Press Ctrl+C to end.\n");
+    printf("Source  Event                  Ch  Data\n");
+
+    signal(SIGINT, sighandler);
+    signal(SIGTERM, sighandler);
+
+    npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
+    pfds = alloca(sizeof(*pfds) * npfds);
+
     while (running)
     {
-        update_effects(data);
-        note_state(state, data);
-        init_piano_keys(state, data);
-
-        while (SDL_PollEvent(&event))
+        snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
+        int p = poll(pfds, npfds, 20);
+        if (p == 0)
         {
-            if (event.type == SDL_QUIT)
+            update_effects(data);
+            note_state(state, data);
+            init_piano_keys(state, data);
+        }
+        else
+        {
+            if (p < 0)
             {
-                running = 0;
+                break;
+            }
+            snd_seq_event_t *event_;
+            err = snd_seq_event_input(seq, &event_);
+            if (event_)
+            {
+                dump_event(event_, state);
+                update_effects(data);
+                note_state(state, data);
+                init_piano_keys(state, data);
             }
         }
     }
@@ -107,25 +153,31 @@ void stop_app(SDL_Window *window, SDL_AudioDeviceID audio_device_id, ud *data)
     SDL_Quit();
 }
 
+Uint8 *init_state_midi_keyboard(size_t size)
+{
+    Uint8 *state = calloc(size, sizeof(Uint8));
+    return state;
+}
+
 // Main function that is called by the main
-void init_run_app(ud *data,void *audio_callback)
+void init_run_app(ud *data, void *audio_callback, int argc, char *argv[])
 {
     init_sdl_audio();
     SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data, audio_callback);
 
     SDL_PauseAudioDevice(audio_device_id, 0);
     SDL_Window *window = sdl_window_set();
-    SDL_Event event;
-    const Uint8 *state = SDL_GetKeyboardState(NULL);
+    Uint8 *state = init_state_midi_keyboard(127);
 
     init_piano_keys(state, data);
+
     int running = 1;
-    run_app(running, data, event, state);
+    run_app(running, data,  state, argc, argv);
     fclose(data->fout);
-    if(data->wav_manager->recorded_samples)
+    if (data->wav_manager->recorded_samples)
     {
-        record(data->wav_manager->recorded_samples, data->fstream->array, "Bach.wav","wb");
+        record(data->wav_manager->recorded_samples, data->fstream->array, "Bach.wav", "wb");
     }
-    
+    free(state);
     stop_app(window, audio_device_id, data);
 }

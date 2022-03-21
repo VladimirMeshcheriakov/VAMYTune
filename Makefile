@@ -6,7 +6,8 @@ CFLAGS = -Wall -Wextra -O3 -g -fsanitize=address
 LDFLAGS =
 LDLIBS = -lm -lSDL2 -lasound
 
-SRC = dynamic_array/dynamic_array.c \
+SRC = midi_interface_management/midi_management.c \
+dynamic_array/dynamic_array.c \
 little_endian/little_endian.c \
 header_wav/header_wav.c \
 wav_management/wav_management.c \
@@ -25,7 +26,7 @@ DEP = ${SRC:.c=.d}
 
 all: main
 
-main: dynamic_array/dynamic_array.o little_endian/little_endian.o header_wav/header_wav.o wav_management/wav_management.o wav_interface/wav_interface.o time_stamp/time_stamp.o adsr/adsr.o keyboard_keys/keys.o userdata/userdata.o note_state_utils/note_state_utils.o basic_signals/basic_signals.o signals/signals.o sdl_call_func/sdl_call_func.o audio_callback/audio_callback.o
+main: midi_interface_management/midi_management.o dynamic_array/dynamic_array.o little_endian/little_endian.o header_wav/header_wav.o wav_management/wav_management.o wav_interface/wav_interface.o time_stamp/time_stamp.o adsr/adsr.o keyboard_keys/keys.o userdata/userdata.o note_state_utils/note_state_utils.o basic_signals/basic_signals.o signals/signals.o  sdl_call_func/sdl_call_func.o audio_callback/audio_callback.o
 
 -include ${DEP}
 
@@ -34,6 +35,6 @@ main: dynamic_array/dynamic_array.o little_endian/little_endian.o header_wav/hea
 clean:
 	${RM} ${OBJ}
 	${RM} ${DEP}
-	${RM} dynamic_array/dynamic_array little_endian/little_endian header_wav/header_wav wav_management/wav_management wav_interface/wav_interface time_stamp/time_stamp adsr/adsr keyboard_keys/keys userdata/userdata note_state_utils/note_state_utils basic_signals/basic_signals signals/signals sdl_call_func/sdl_call_func audio_callback/audio_callback main
+	${RM} midi_interface_management/midi_management dynamic_array/dynamic_array little_endian/little_endian header_wav/header_wav wav_management/wav_management wav_interface/wav_interface time_stamp/time_stamp adsr/adsr keyboard_keys/keys userdata/userdata note_state_utils/note_state_utils basic_signals/basic_signals signals/signals  sdl_call_func/sdl_call_func audio_callback/audio_callback main
 
 # END

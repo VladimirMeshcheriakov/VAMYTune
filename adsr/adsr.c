@@ -65,11 +65,11 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
     {
         // SR
         // Release
-        //printf("%d\n",envelope->released);
         if (t_inst->released)
         {
             // If the time the signal is played is still in the ADSR enveloppe,
             // process the amplitude, if not send out zero
+            //printf("actual: %f , Note stop time: %f, Enveleoppe release: %f, Res: %d ",actual_signal_time, t_inst->stop_time ,envelope->release_time,actual_signal_time < t_inst->stop_time + envelope->release_time);
             if (actual_signal_time < t_inst->stop_time + envelope->release_time)
             {
                 signal = envelope->sustain_amplitude -

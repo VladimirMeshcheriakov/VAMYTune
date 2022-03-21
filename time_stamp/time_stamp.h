@@ -35,4 +35,5 @@ typedef struct
 
 void free_time_management(TimeManagement *all_time);
 TimeManagement *init_time_management(size_t size);
+void printf_time(TimeStamp **table,size_t size);
 #endif
