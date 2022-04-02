@@ -39,7 +39,10 @@ typedef struct
     // The size of the file
     uint64_t fout_size;
 
+    //Signal passed to the visualiser
     float * sig;
+    
+    
 
 } ud;
 

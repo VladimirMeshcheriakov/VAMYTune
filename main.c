@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {
     // Init the ADSR envelope
-    ADSR *env = init_ADSR_envelope(0.2, 0.2, 0.2, 0.0, 1.0, 0.6, 0.0);
+    ADSR *env = init_ADSR_envelope(0.01, 0.01, 0.01, 0.0, 1.0, 0.6, 0.0);
     // Data to pass to the audio_callback function
     uint64_t samples_played = 0.;
     // <Number of keys (usually 13)>

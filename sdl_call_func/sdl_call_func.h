@@ -1,6 +1,4 @@
-#include "../signals/signals.h"
-#include "../wav_interface/wav_interface.h"
-#include "../midi_interface_management/midi_management.h"
+#include "../visualiser/vis.h"
 
 #ifndef SDL_CALL_FUNC_H
 #define SDL_CALL_FUNC_H

@@ -3,16 +3,16 @@
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkAdjustment" id="adjustment1">
-    <property name="lower">10</property>
-    <property name="upper">5000</property>
-    <property name="value">300</property>
+    <property name="lower">100</property>
+    <property name="upper">2000</property>
+    <property name="value">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="adjustment2">
     <property name="lower">100</property>
-    <property name="upper">5000</property>
-    <property name="value">300</property>
+    <property name="upper">2000</property>
+    <property name="value">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
@@ -26,48 +26,48 @@
         <property name="visible">True</property>
         <property name="can-focus">True</property>
         <child>
-          <object class="GtkPaned">
-            <property name="name">paned2</property>
+          <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can-focus">True</property>
+            <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
+            <property name="homogeneous">True</property>
             <child>
               <object class="GtkSpinButton" id="X_ZOOM">
-                <property name="name">X Zoom</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="max-length">4</property>
-                <property name="width-chars">4</property>
                 <property name="max-width-chars">5</property>
-                <property name="xalign">0.5</property>
-                <property name="placeholder-text" translatable="yes">X_ZOOM</property>
-                <property name="input-purpose">number</property>
-                <property name="adjustment">adjustment1</property>
-                <property name="climb-rate">1</property>
-                <property name="numeric">True</property>
+                <property name="adjustment">adjustment2</property>
               </object>
               <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
               <object class="GtkSpinButton" id="Y_ZOOM">
-                <property name="name">Y Zoom</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="max-length">4</property>
-                <property name="width-chars">4</property>
                 <property name="max-width-chars">5</property>
-                <property name="xalign">0.5</property>
-                <property name="placeholder-text" translatable="yes">Y_ZOOM</property>
-                <property name="input-purpose">number</property>
-                <property name="adjustment">adjustment2</property>
-                <property name="climb-rate">1</property>
+                <property name="adjustment">adjustment1</property>
               </object>
               <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleButton" id="On/Off">
+                <property name="label" translatable="yes">On/Off</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
