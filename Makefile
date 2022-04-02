@@ -2,9 +2,9 @@
 
 CPPFLAGS = -MMD
 CC = gcc
-CFLAGS = -Wall -Wextra -O3 -g -fsanitize=address
+CFLAGS =  `pkg-config --cflags gtk+-3.0` -Wall -Wextra -O3 -g -fsanitize=address
 LDFLAGS =
-LDLIBS = -lm -lSDL2 -lasound
+LDLIBS = -lm -lSDL2 -lasound `pkg-config --libs gtk+-3.0`
 
 SRC = midi_interface_management/midi_management.c \
 dynamic_array/dynamic_array.c \

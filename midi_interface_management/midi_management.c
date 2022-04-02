@@ -5,7 +5,7 @@
 static snd_seq_t *seq;
 static int port_count;
 static snd_seq_addr_t *ports;
-static volatile sig_atomic_t stop = 0;
+
 
 /* prints an error message to stderr, and dies */
 void fatal(const char *msg, ...)
@@ -167,10 +167,7 @@ void help(const char *argv0)
            argv0);
 }
 
-void sighandler(int sig)
-{
-    stop = 1;
-}
+
 
 int parse_input(int argc, char *argv[])
 {

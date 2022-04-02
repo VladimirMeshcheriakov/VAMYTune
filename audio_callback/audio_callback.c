@@ -34,6 +34,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         //Put the signal value into the stream
         fstream[2 * sid + 0] = val; /* L */
         fstream[2 * sid + 1] = val; /* R */
+        us_d->sig[sid] = val;
         if(us_d->wav_manager->record)
         {
             insertArray(us_d->fstream,val);

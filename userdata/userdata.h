@@ -39,6 +39,8 @@ typedef struct
     // The size of the file
     uint64_t fout_size;
 
+    float * sig;
+
 } ud;
 
 ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);
