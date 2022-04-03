@@ -9,17 +9,6 @@ void init_piano_keys(Uint8 *state, ud *data)
         piano_keys[i] = state[i];
     }
     /*
-    Uint8 *past_occ = data->all_keys->keys;
-    for (int i = 0; i < 127; i++)
-    {
-        if (state[i] != past_occ[i])
-        {
-            // STATE CHANGED
-            note_state_change(data, i);
-        }
-    }
-    */
-    /*
     //Side effects
     data->side_effect[0] = state[35];
     data->side_effect[1] = state[46];
@@ -175,14 +164,13 @@ void note_state(Uint8 *state, ud *data)
        
         if (state[i] != past_occ[i])
         {
-            //printf("State change on note %d\n",i);
             // STATE CHANGED
             note_state_change(data, i);
         }
     }
-    /*
-    octave_set(state, data);
-    recording_set(state, data);
-    playback_set(state, data);
-    */
+    
+    //octave_set(state, data);
+    //recording_set(state, data);
+    //playback_set(state, data);
+    
 }

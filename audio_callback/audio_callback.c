@@ -23,10 +23,11 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         //Call the function that calculates the signal outhput at the current time
         float val = signal_treat(volume,us_d);
 
+
         if(us_d->wav_manager->playback && (us_d->fout_size > us_d->wav_manager->played_samples+44))
         {
             read_from_wav(us_d->fout,"Bach.wav",us_d->wav_manager->playback_buffer);
-            printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
+            //printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
             val += us_d->wav_manager->playback_buffer[0];
             us_d->wav_manager->played_samples +=8;
         }

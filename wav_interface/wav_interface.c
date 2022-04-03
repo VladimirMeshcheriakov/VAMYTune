@@ -51,6 +51,8 @@ FILE *open_WAV(const char *filename)
     printf("Size left for sound is %ld bytes\n",file_size - file_header_read);
     return fout;
 }
+
+
 //Writes to a WAV file, if such file is not yet created, creates the file and writes to it
 bool record(uint64_t sample_size, float *sound, const char *file_name, const char *type)
 {

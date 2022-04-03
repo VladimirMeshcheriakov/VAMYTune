@@ -25,6 +25,47 @@ on_hault(GtkButton *button,gpointer user_data)
 }
 */
 
+static gboolean key_pressed(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+    if (event->keyval == GDK_KEY_r)
+    {
+    }
+    else if (event->keyval == GDK_KEY_s)
+    {
+    }
+    else if (event->keyval == GDK_KEY_p)
+    {
+    }
+    else if (event->keyval == GDK_KEY_o)
+    {
+    }
+    return GDK_EVENT_PROPAGATE;
+}
+
+static gboolean key_released(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+    ud *data= (ud *)user_data;
+    if (event->keyval == GDK_KEY_r)
+    {
+        //Record
+        data->wav_manager->record = 1;
+    }
+    else if (event->keyval == GDK_KEY_s)
+    {
+        //Stop record
+        data->wav_manager->record = 0;
+    }
+    else if (event->keyval == GDK_KEY_p)
+    {
+        data->wav_manager->playback = 1;
+    }
+    else if (event->keyval == GDK_KEY_o)
+    {
+        data->wav_manager->playback = 0;
+    }
+    return GDK_EVENT_PROPAGATE;
+}
+
 static gboolean
 on_x(GtkWidget *a_spinner, gpointer user_data)
 {
@@ -48,12 +89,11 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
     vis_struct *vs = (vis_struct *)user_data;
-    float * us = vs->sig;
+    float *us = vs->sig;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
-
-    GdkRectangle da;                /* GtkDrawingArea size */
+    GdkRectangle da;            /* GtkDrawingArea size */
     gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
     gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
 
@@ -62,7 +102,7 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     int drawing_area_height = gtk_widget_get_allocated_height(widget);
 
     /* Determine GtkDrawingArea dimensions */
-    
+
     gdk_window_get_geometry(window,
                             &da.x,
                             &da.y,
@@ -74,9 +114,9 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     cairo_paint(cr);
 
     /* Change the transformation matrix */
-    //Put the origin of the graph into the center of the image
-    cairo_translate(cr, da.width/2 , da.height/2 );
-    cairo_scale(cr, zoom_x,-zoom_y);
+    // Put the origin of the graph into the center of the image
+    cairo_translate(cr, da.width / 2, da.height / 2);
+    cairo_scale(cr, zoom_x, -zoom_y);
 
     /* Determine the data points to calculate (ie. those in the clipping zone */
     cairo_device_to_user_distance(cr, &dx, &dy);
@@ -91,48 +131,46 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     cairo_line_to(cr, 0.0, clip_y2);
     cairo_stroke(cr);
 
-    
-    dx = (((double)drawing_area_width/200)/5.12) * 0.01;
+    dx = (((double)drawing_area_width / 200) / 5.12) * 0.01;
 
-    //printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
-    //printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
-     /* Link each data point */
+    // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
+    // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
+    /* Link each data point */
     int cpt = 0;
     for (i = clip_x1; i < clip_x2; i += dx)
     {
-        if(cpt<1024)
+        if (cpt < 1024)
         {
             float he = us[cpt];
-            //printf("double %f\n",i);
+            // printf("double %f\n",i);
             cairo_line_to(cr, i, he);
             cpt += 1;
         }
     }
-    //printf("cpt %d\n", cpt);
+    // printf("cpt %d\n", cpt);
 
     /* Draw the curve */
     cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
     cairo_stroke(cr);
 
-    //printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
+    // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
 
     gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
 
     return G_SOURCE_REMOVE;
 }
 
-
 // Main loop of the app
-void run_app(vis_struct * my_data)
+void run_app(vis_struct *my_data)
 {
     int argc = my_data->argc;
     char **argv = my_data->argv;
-    ud* data = my_data->data;
-    Uint8 * state = my_data->state;
+    ud *data = my_data->data;
+    Uint8 *state = my_data->state;
 
     data->fout = open_WAV("Bach.wav");
     data->fout_size = findSize("Bach.wav");
-    
+
     struct pollfd *pfds;
     int npfds;
 
@@ -143,7 +181,7 @@ void run_app(vis_struct * my_data)
         printf("Parsing error\n");
     }
 
-    snd_seq_t * seq = create_port();
+    snd_seq_t *seq = create_port();
     int port_count = connect_ports(seq);
 
     if (port_count > 0)
@@ -199,8 +237,7 @@ thread_func(gpointer user_data)
     return NULL;
 }
 
-
-int gtk_run_zbi(ud * data, Uint8 * state,int argc, char **argv )
+int gtk_run_zbi(ud *data, Uint8 *state, int argc, char **argv)
 {
     GThread *thread[N_THREADS];
 
@@ -215,10 +252,10 @@ int gtk_run_zbi(ud * data, Uint8 * state,int argc, char **argv )
     vis_data.x_zoom = 300;
     vis_data.y_zoom = 300;
 
-    gtk_init(NULL,NULL);
+    gtk_init(NULL, NULL);
 
-    GtkBuilder* builder = gtk_builder_new();
-    GError* error = NULL;
+    GtkBuilder *builder = gtk_builder_new();
+    GError *error = NULL;
     if (gtk_builder_add_from_file(builder, "sdl_call_func/plain.glade", &error) == 0)
     {
         g_printerr("Error loading file: %s\n", error->message);
@@ -228,21 +265,24 @@ int gtk_run_zbi(ud * data, Uint8 * state,int argc, char **argv )
 
     GtkWindow *window = GTK_WINDOW(gtk_builder_get_object(builder, "org.gtk.duel"));
 
+    
+
     gtk_window_set_title(GTK_WINDOW(window), "Graph drawing");
 
     GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "area"));
     GtkSpinButton *spx = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "X_ZOOM"));
     GtkSpinButton *spy = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Y_ZOOM"));
-    //GtkButton *on_off = GTK_BUTTON(gtk_builder_get_object(builder, "On/Off"));
 
     g_object_unref(builder);
 
+    //gtk_widget_set_events(GTK_WIDGET(window), GDK_KEY_RELEASE_MASK | GDK_KEY_PRESS_MASK );
+
     g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_data.stop_thread);
-    //g_signal_connect(G_OBJECT(on_off), "clicked", G_CALLBACK(on_hault), &vis_data.halt);
+    g_signal_connect(G_OBJECT(window), "key_press_event", G_CALLBACK(key_pressed), data);
+    g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), data);
     g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_data.x_zoom);
     g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_data.y_zoom);
     g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_draw), &vis_data);
-
 
     for (int n = 0; n < N_THREADS; ++n)
         thread[n] = g_thread_new(NULL, thread_func, (gpointer)&vis_data);
