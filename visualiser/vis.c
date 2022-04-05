@@ -1,47 +1,43 @@
 #include "vis.h"
 
+GMainContext *context;
+
+typedef struct
+{
+    GtkScale *lead;
+    vis_data *data;
+
+} GtkMultipleScales;
+
+// Stops the main thread, quits the gtk
 void on_destroy(GtkWidget *Widget, gpointer user_data)
 {
     int *running = (int *)user_data;
     *running = 0;
-    g_print("dest\n");
     gtk_main_quit();
 }
 
-/*
+// Changes the x zoom
 static gboolean
-on_hault(GtkButton *button,gpointer user_data)
+on_x(GtkWidget *a_spinner, gpointer user_data)
 {
-    int *halt = (int *)user_data;
-    if (*halt)
-    {
-        *halt = 0;
-    }
-    else
-    {
-        *halt = 1;
-    }
+    int *x_zoom = (int *)user_data;
+    int x = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
+    *x_zoom = x;
     return G_SOURCE_REMOVE;
 }
-*/
 
-static gboolean key_pressed(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+// Changes the y zoom
+static gboolean
+on_y(GtkWidget *a_spinner, gpointer user_data)
 {
-    if (event->keyval == GDK_KEY_r)
-    {
-    }
-    else if (event->keyval == GDK_KEY_s)
-    {
-    }
-    else if (event->keyval == GDK_KEY_p)
-    {
-    }
-    else if (event->keyval == GDK_KEY_o)
-    {
-    }
-    return GDK_EVENT_PROPAGATE;
+    int *y_zoom = (int *)user_data;
+    int y = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
+    *y_zoom = y;
+    return G_SOURCE_REMOVE;
 }
 
+//Key_change
 static gboolean key_released(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
     ud *data= (ud *)user_data;
@@ -66,30 +62,129 @@ static gboolean key_released(GtkWidget *widget, GdkEventKey *event, gpointer use
     return GDK_EVENT_PROPAGATE;
 }
 
+// Toggles the activation
 static gboolean
-on_x(GtkWidget *a_spinner, gpointer user_data)
+on_activate(GtkWidget *a_check, gpointer user_data)
 {
-    int *x_zoom = (int *)user_data;
-    int x = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-    *x_zoom = x;
+    int *old_state = (int *)user_data;
+    // Flip state
+    int new_state = *old_state ? 0 : 1;
+    *old_state = new_state;
     return G_SOURCE_REMOVE;
 }
 
+// Scale move (normal)
 static gboolean
-on_y(GtkWidget *a_spinner, gpointer user_data)
+on_scale_change(GtkWidget *a_scale, gpointer user_data)
 {
-    int *y_zoom = (int *)user_data;
-    int y = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-    *y_zoom = y;
+    float *old_val = (float *)user_data;
+    float actual_val = gtk_range_get_value(GTK_RANGE(a_scale));
+    *old_val = actual_val;
     return G_SOURCE_REMOVE;
 }
 
+
+// Scale move on the low side of the band filters
 static gboolean
-on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
+{
+    GtkMultipleScales *data = (GtkMultipleScales *)user_data;
+
+    float *low_cut = &(data->data->band_cut_low);
+    float *high_cut = &(data->data->band_cut_high);
+
+    GtkScale *high = GTK_SCALE(data->lead);
+    GtkScale *low = GTK_SCALE(low_scale);
+
+    gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
+    *low_cut = low_val;
+
+    gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
+    if (high_val < low_val)
+    {
+        *high_cut = low_val;
+        gtk_range_set_value(GTK_RANGE(high), low_val);
+    }
+}
+
+// Scale move on the high side of the band filters
+static gboolean
+on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
+{
+    GtkMultipleScales *data = (GtkMultipleScales *)user_data;
+
+    float *low_cut = &(data->data->band_cut_low);
+    float *high_cut = &(data->data->band_cut_high);
+
+    GtkScale *low = GTK_SCALE(data->lead);
+    GtkScale *high = GTK_SCALE(high_scale);
+
+    gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
+
+    gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
+    *high_cut = high_val;
+
+    if (high_val < low_val)
+    {
+        *low_cut = high_val;
+        gtk_range_set_value(GTK_RANGE(low), high_val);
+    }
+}
+
+// Scale move on the low side of the band filters
+static gboolean
+on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
+{
+    GtkMultipleScales *data = (GtkMultipleScales *)user_data;
+
+    float *low_cut = &(data->data->band_pass_low);
+    float *high_cut = &(data->data->band_pass_high);
+
+    GtkScale *high = GTK_SCALE(data->lead);
+    GtkScale *low = GTK_SCALE(low_scale);
+
+    gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
+    *low_cut = low_val;
+
+    gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
+    if (high_val < low_val)
+    {
+        *high_cut = low_val;
+        gtk_range_set_value(GTK_RANGE(high), low_val);
+    }
+}
+
+// Scale move on the high side of the band filters
+static gboolean
+on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
+{
+    GtkMultipleScales *data = (GtkMultipleScales *)user_data;
+
+    float *low_cut = &(data->data->band_pass_low);
+    float *high_cut = &(data->data->band_pass_high);
+
+    GtkScale *low = GTK_SCALE(data->lead);
+    GtkScale *high = GTK_SCALE(high_scale);
+
+    gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
+
+    gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
+    *high_cut = high_val;
+
+    if (high_val < low_val)
+    {
+        *low_cut = high_val;
+        gtk_range_set_value(GTK_RANGE(low), high_val);
+    }
+}
+
+// Dynamically draws the harmonics
+static gboolean
+on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
-    vis_struct *vs = (vis_struct *)user_data;
-    float *us = vs->sig;
+    vis_data *vs = (vis_data *)user_data;
+    float *us = vs->harmonics;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
@@ -102,7 +197,82 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     int drawing_area_height = gtk_widget_get_allocated_height(widget);
 
     /* Determine GtkDrawingArea dimensions */
+    gdk_window_get_geometry(window,
+                            &da.x,
+                            &da.y,
+                            &da.width,
+                            &da.height);
 
+    /* Draw on a black background */
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+    cairo_paint(cr);
+
+    /* Change the transformation matrix */
+    // Put the origin of the graph into the center of the image
+    cairo_translate(cr, 0, da.height);
+    cairo_scale(cr, zoom_x, -zoom_y);
+
+    /* Determine the data points to calculate (ie. those in the clipping zone */
+    cairo_device_to_user_distance(cr, &dx, &dy);
+    cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
+    cairo_set_line_width(cr, dx);
+
+    /* Draws x and y axis */
+    cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
+    cairo_move_to(cr, clip_x1, 0.0);
+    cairo_line_to(cr, clip_x2, 0.0);
+    cairo_move_to(cr, 0.0, clip_y1);
+    cairo_line_to(cr, 0.0, clip_y2);
+    cairo_stroke(cr);
+
+    dx = (((double)drawing_area_width / 200) / 5.12) * 0.01;
+
+    // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
+    // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
+    /* Link each data point */
+    int cpt = 0;
+    for (i = clip_x1; i < clip_x2; i += dx)
+    {
+        if (cpt < 1024)
+        {
+            float he = us[cpt];
+            // printf("double %f\n",i);
+            cairo_line_to(cr, i, he* clip_y2);
+            cpt += 1;
+        }
+    }
+    // printf("cpt %d\n", cpt);
+
+    /* Draw the curve */
+    cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
+    cairo_stroke(cr);
+    // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
+
+    gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
+
+    return G_SOURCE_REMOVE;
+}
+
+// Dynamically draws the signal
+static gboolean
+on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+{
+
+    vis_data *vs = (vis_data *)user_data;
+    float *us = vs->sig;
+    float *resp = vs->response;
+    int zoom_x = vs->x_zoom;
+    int zoom_y = vs->y_zoom;
+
+    GdkRectangle da;            /* GtkDrawingArea size */
+    gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
+    gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+
+    GdkWindow *window = gtk_widget_get_window(widget);
+    int drawing_area_width = gtk_widget_get_allocated_width(widget);
+    int drawing_area_height = gtk_widget_get_allocated_height(widget);
+
+    /* Determine GtkDrawingArea dimensions */
     gdk_window_get_geometry(window,
                             &da.x,
                             &da.y,
@@ -153,6 +323,19 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
     cairo_stroke(cr);
 
+    cpt = 0;
+    for (i = clip_x1; i < clip_x2; i += dx)
+    {
+        if (cpt < 1024)
+        {
+            float he = resp[cpt];
+            // printf("double %f\n",i);
+            cairo_line_to(cr, i, he);
+            cpt += 1;
+        }
+    }
+    cairo_set_source_rgba(cr, 0.2, 0.6, 0.6, 0.7);
+    cairo_stroke(cr);
     // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
 
     gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
@@ -160,8 +343,9 @@ on_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     return G_SOURCE_REMOVE;
 }
 
+
 // Main loop of the app
-void run_app(vis_struct *my_data)
+void run_app(vis_data *my_data)
 {
     int argc = my_data->argc;
     char **argv = my_data->argv;
@@ -221,13 +405,14 @@ void run_app(vis_struct *my_data)
                 init_piano_keys(state, data);
             }
         }
+        apply_filter_to_buffer(my_data,1024);
     }
 }
 
 static gpointer
 thread_func(gpointer user_data)
 {
-    vis_struct *vs = (vis_struct *)user_data;
+    vis_data *vs = (vis_data *)user_data;
     g_print("Starting thread %d\n", 1);
     while (vs->stop_thread)
     {
@@ -241,57 +426,134 @@ int gtk_run_zbi(ud *data, Uint8 *state, int argc, char **argv)
 {
     GThread *thread[N_THREADS];
 
-    vis_struct vis_data;
+    vis_data vis_d;
 
-    vis_data.data = data;
-    vis_data.sig = data->sig;
-    vis_data.state = state;
-    vis_data.stop_thread = 1;
-    vis_data.argc = argc;
-    vis_data.argv = argv;
-    vis_data.x_zoom = 300;
-    vis_data.y_zoom = 300;
+    vis_d.harmonics = data->harmonics;
+    vis_d.response = data->filtered;
 
-    gtk_init(NULL, NULL);
+    vis_d.data = data;
+    vis_d.sig = data->sig;
+    vis_d.state = state;
+    vis_d.stop_thread = 1;
+    vis_d.argc = argc;
+    vis_d.argv = argv;
+    vis_d.x_zoom = 300;
+    vis_d.y_zoom = 300;
+
+    
+    gtk_init(&argc, &argv);
 
     GtkBuilder *builder = gtk_builder_new();
     GError *error = NULL;
-    if (gtk_builder_add_from_file(builder, "sdl_call_func/plain.glade", &error) == 0)
+    if (gtk_builder_add_from_file(builder, "visualiser/plain.glade", &error) == 0)
     {
         g_printerr("Error loading file: %s\n", error->message);
         g_clear_error(&error);
         return 1;
     }
 
+    // Window
     GtkWindow *window = GTK_WINDOW(gtk_builder_get_object(builder, "org.gtk.duel"));
 
-    
+    // Title of the window
+    gtk_window_set_title(GTK_WINDOW(window), "filter app");
 
-    gtk_window_set_title(GTK_WINDOW(window), "Graph drawing");
+    // Drawing areas
+    GtkDrawingArea *da_signal = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "area"));
+    GtkDrawingArea *da_harmonics = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "harmonics_da"));
 
-    GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "area"));
+    // SpinButtons
     GtkSpinButton *spx = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "X_ZOOM"));
     GtkSpinButton *spy = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Y_ZOOM"));
 
+    // Scale
+    GtkScale *low_pass_cutoff = GTK_SCALE(gtk_builder_get_object(builder, "low_pass_cut"));
+    GtkScale *high_pass_cutoff = GTK_SCALE(gtk_builder_get_object(builder, "high_pass_cut"));
+    GtkScale *band_pass_low = GTK_SCALE(gtk_builder_get_object(builder, "band_pass_low"));
+    GtkScale *band_pass_high = GTK_SCALE(gtk_builder_get_object(builder, "band_pass_high"));
+    GtkScale *band_cut_low = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_low"));
+    GtkScale *band_cut_high = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_high"));
+
+    // Check Buttons
+    GtkCheckButton *low_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "low_pass_activate"));
+    GtkCheckButton *high_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "high_pass_activate"));
+    GtkCheckButton *band_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_pass_activate"));
+    GtkCheckButton *band_cut_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_cut_activate"));
+
+    // Unreference the objects
     g_object_unref(builder);
 
-    //gtk_widget_set_events(GTK_WIDGET(window), GDK_KEY_RELEASE_MASK | GDK_KEY_PRESS_MASK );
+    // Signals
 
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_data.stop_thread);
-    g_signal_connect(G_OBJECT(window), "key_press_event", G_CALLBACK(key_pressed), data);
     g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), data);
-    g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_data.x_zoom);
-    g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_data.y_zoom);
-    g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_draw), &vis_data);
+
+    // Destroy signal
+    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d.stop_thread);
+
+    // Signal on the x_zoom value
+    g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_d.x_zoom);
+    // Signal on the y_zoom value
+    g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_d.y_zoom);
+
+    // Signal to the low_pass_activate
+    g_signal_connect(G_OBJECT(low_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.low_active);
+    // Signal to the high_pass_activate
+    g_signal_connect(G_OBJECT(high_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.high_active);
+    // Signal to the band_pass_active
+    g_signal_connect(G_OBJECT(band_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.band_pass_active);
+    // Signal to the band_cut_active
+    g_signal_connect(G_OBJECT(band_cut_activate), "toggled", G_CALLBACK(on_activate), &vis_d.band_cut_active);
+
+
+
+    GtkMultipleScales *band_cut_data_low = malloc(sizeof(GtkMultipleScales));
+    band_cut_data_low->data = &vis_d;
+    band_cut_data_low->lead = band_cut_high;
+
+    GtkMultipleScales *band_cut_data_high = malloc(sizeof(GtkMultipleScales));
+    band_cut_data_high->data = &vis_d;
+    band_cut_data_high->lead = band_cut_low;
+
+    g_signal_connect(G_OBJECT(band_cut_low), "value_changed", G_CALLBACK(on_scale_band_cut_change_low), band_cut_data_low);
+    g_signal_connect(G_OBJECT(band_cut_high), "value_changed", G_CALLBACK(on_scale_band_cut_change_high), band_cut_data_high);
+
+    GtkMultipleScales *band_pass_data_low = malloc(sizeof(GtkMultipleScales));
+    band_pass_data_low->data = &vis_d;
+    band_pass_data_low->lead = band_pass_high;
+
+    GtkMultipleScales *band_pass_data_high = malloc(sizeof(GtkMultipleScales));
+    band_pass_data_high->data = &vis_d;
+    band_pass_data_high->lead = band_pass_low;
+
+    g_signal_connect(G_OBJECT(band_pass_low), "value_changed", G_CALLBACK(on_scale_band_change_low), band_pass_data_low);
+    g_signal_connect(G_OBJECT(band_pass_high), "value_changed", G_CALLBACK(on_scale_band_change_high), band_pass_data_high);
+
+    g_signal_connect(G_OBJECT(low_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change),&vis_d.low_pass_cut);
+    g_signal_connect(G_OBJECT(high_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change),&vis_d.high_pass_cut);
+
+    // Signal on the drawing area of the signal
+    g_signal_connect(G_OBJECT(da_signal), "draw", G_CALLBACK(on_draw_signal), &vis_d);
+    // Signal on the drawing area of the harmonic
+    g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), &vis_d);
+
+    context = g_main_context_default();
 
     for (int n = 0; n < N_THREADS; ++n)
-        thread[n] = g_thread_new(NULL, thread_func, (gpointer)&vis_data);
+        thread[n] = g_thread_new(NULL, thread_func, &vis_d);
 
     gtk_widget_show_all(GTK_WIDGET(window));
+
     gtk_main();
 
     for (int n = 0; n < N_THREADS; ++n)
         g_thread_join(thread[n]);
 
+    free(band_cut_data_low);
+    free(band_cut_data_high);
+    free(band_pass_data_low);
+    free(band_pass_data_high);
+
     return 0;
 }
+
+

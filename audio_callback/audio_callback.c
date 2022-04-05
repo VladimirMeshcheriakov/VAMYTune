@@ -1,6 +1,13 @@
 #include "audio_callback.h"
 
 
+//TODO
+/*
+
+ ? The buffer size of fstream is 2048, the one passed to sig is 1024 same for harm and filtered, so it would be gread to pass a larger buffer to all those functions so that the visualisation happends slowerz       
+
+*/
+
 
 void audio_callback(void *userdata, uint8_t *stream, int len)
 {
@@ -16,32 +23,26 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
     //Play until the sample len has been achieved 
     for (int sid = 0; sid < (len / 8); ++sid)
     {
+        float val = 0;
         //Calculate the actual programm run-time
         double time = (*samples_played + sid) / 44100.0;
         //Set the actual time in the data
         us_d->time_management->actual_time = time;
-        //Call the function that calculates the signal outhput at the current time
-        float val = signal_treat(volume,us_d);
 
+        //Call the function that calculates the signal outhput at the current time and save the signal to the sig
+        val += signal_treat(volume,us_d,sid);
 
-        if(us_d->wav_manager->playback && (us_d->fout_size > us_d->wav_manager->played_samples+44))
-        {
-            read_from_wav(us_d->fout,"Bach.wav",us_d->wav_manager->playback_buffer);
-            //printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
-            val += us_d->wav_manager->playback_buffer[0];
-            us_d->wav_manager->played_samples +=8;
-        }
-        
-        //Put the signal value into the stream
-        fstream[2 * sid + 0] = val; /* L */
-        fstream[2 * sid + 1] = val; /* R */
-        us_d->sig[sid] = val;
+        //If recording
         if(us_d->wav_manager->record)
         {
             insertArray(us_d->fstream,val);
             insertArray(us_d->fstream,val);
             us_d->wav_manager->recorded_samples +=1;
         }
+
+        //Put the signal value into the stream
+        fstream[2 * sid + 0] = val; /* L */
+        fstream[2 * sid + 1] = val; /* R */
         //printf("time:%f, data %f\n",time,val);
     }
     //Increment the number of samples played

@@ -41,6 +41,12 @@ typedef struct
 
     //Signal passed to the visualiser
     float * sig;
+
+    // The result of the filtering showing the harmonics
+    float * harmonics;
+
+    //The filtered signal
+    float * filtered;
     
     
 
