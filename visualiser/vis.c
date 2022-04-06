@@ -182,9 +182,8 @@ on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
 static gboolean
 on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-
     vis_data *vs = (vis_data *)user_data;
-    float *us = vs->data->harmonics;
+    float *us = vs->harmonics_sample;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
@@ -225,23 +224,23 @@ on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     cairo_line_to(cr, 0.0, clip_y2);
     cairo_stroke(cr);
 
-    dx = (((double)drawing_area_width / 200) / 5.12) * 0.01;
+   
 
-    // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
+    //printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, (clip_x2/(double)1024));
     // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
     /* Link each data point */
     int cpt = 0;
-    for (i = clip_x1; i < clip_x2; i += dx)
+    for (i = clip_x1; i < clip_x2; i += (clip_x2/(double)1024))
     {
         if (cpt < 1024)
         {
             float he = us[cpt];
             // printf("double %f\n",i);
             cairo_line_to(cr, i, he* clip_y2);
-            cpt += 1;
         }
+        cpt += 1;
     }
-    // printf("cpt %d\n", cpt);
+    printf("cpt 1 %d\n", cpt);
 
     /* Draw the curve */
     cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
@@ -259,11 +258,12 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
     vis_data *vs = (vis_data *)user_data;
-    float *us = vs->data->sig;
-    float *resp = vs->data->filtered;
+    float *us = vs->sig_sample;
+    float *resp = vs->filtered_sample;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
+   
     GdkRectangle da;            /* GtkDrawingArea size */
     gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
     gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
@@ -301,42 +301,43 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
     cairo_line_to(cr, 0.0, clip_y2);
     cairo_stroke(cr);
 
-    dx = (((double)drawing_area_width / 200) / 5.12) * 0.01;
 
     // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
     // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
     /* Link each data point */
     int cpt = 0;
-    for (i = clip_x1; i < clip_x2; i += dx)
+    for (i = clip_x1; i < clip_x2; i += (clip_x2/(double)512) )
     {
         if (cpt < 1024)
         {
             float he = us[cpt];
             // printf("double %f\n",i);
             cairo_line_to(cr, i, he);
-            cpt += 1;
         }
+        cpt += 1;
     }
-    // printf("cpt %d\n", cpt);
 
     /* Draw the curve */
     cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
     cairo_stroke(cr);
-
+    
     cpt = 0;
-    for (i = clip_x1; i < clip_x2; i += dx)
+    for (i = clip_x1; i < clip_x2; i += (clip_x2/(double)512))
     {
         if (cpt < 1024)
         {
             float he = resp[cpt];
             // printf("double %f\n",i);
             cairo_line_to(cr, i, he);
-            cpt += 1;
+           
         }
+         cpt += 1;
     }
     cairo_set_source_rgba(cr, 0.2, 0.6, 0.6, 0.7);
     cairo_stroke(cr);
-    // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
+    
+
+    
 
     gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
 
@@ -402,6 +403,7 @@ void run_app(vis_data *my_data)
                 init_piano_keys(state, data);
             }
         }
+        apply_filter_to_sample(my_data,1024);
     }
 }
 

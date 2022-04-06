@@ -29,8 +29,8 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         
 
         // Call the function that calculates the signal outhput at the current time and save the signal to the sig
-        float val = signal_treat(volume, us_d->data);
-        
+        //float val = signal_treat(volume, us_d->data);
+        float val = create_signal(volume,time,440);
         if (us_d->data->wav_manager->playback && (us_d->data->fout_size > us_d->data->wav_manager->played_samples + 44))
         {
             read_from_wav(us_d->data->fout, "Bach.wav", us_d->data->wav_manager->playback_buffer);

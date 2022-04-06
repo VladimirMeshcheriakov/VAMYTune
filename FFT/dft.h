@@ -30,8 +30,13 @@ typedef struct
 
     float band_cut_low;
     float band_cut_high;
+
+    float * sig_sample;
+    float * filtered_sample;
+    float * harmonics_sample;
 }vis_data;
 
 void apply_filter_to_buffer(vis_data *data, size_t size);
+void apply_filter_to_sample(vis_data *data, size_t size);
 
 #endif

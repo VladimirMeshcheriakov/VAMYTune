@@ -244,6 +244,38 @@ void apply_filter_to_buffer(vis_data *data, size_t size)
 
     ifft(arr,rep,size);
     free(arr);
+}
+
+void apply_filter_to_sample(vis_data *data, size_t size)
+{
+    float * buf = data->sig_sample;
+    float * mag = data->harmonics_sample;
+    float * rep = data->filtered_sample;
+
+    complex_number *arr = fft(buf, size);
+
+    // put your filter here
     
+    if(data->low_active)
+    {
+        filter_cut_from(arr,size,(size_t)((data->low_pass_cut * 1024)/44000));
+    }
+    if(data->high_active)
+    {
+        filter_cut_before(arr,(size_t)((data->high_pass_cut * 1024)/44000),size);
+    }
+    if(data->band_pass_active)
+    {
+        filter_cut_around(arr,(size_t)((data->band_pass_low * 1024)/44000),(size_t)((data->band_pass_high * 1024)/44000),size);
+    }
+    if(data->band_cut_active)
+    {
+        filter_cut_between(arr,(size_t)((data->band_cut_low * 1024)/44000),(size_t)((data->band_cut_high * 1024)/44000),size);
+    }
+    
+    mag_table(arr,mag,size);
+
+    ifft(arr,rep,size);
+    free(arr);
 }
 

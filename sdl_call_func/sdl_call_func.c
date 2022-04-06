@@ -50,7 +50,17 @@ void stop_app(SDL_AudioDeviceID audio_device_id, ud *data)
 }
 
 
-
+//Creates the sample sig that goest to the display
+void init_sig_and_filtered_sample(vis_data *data)
+{
+    for (size_t i = 0; i < 1024; i++)
+    {
+        double time = i/ 44100.0;
+        float val = create_signal(0.8,time,440);
+        data->sig_sample[i] = val;
+        data->filtered_sample[i] = val;
+    }
+}
 
 // Main function that is called by the main
 void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
@@ -61,6 +71,8 @@ void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
     SDL_PauseAudioDevice(audio_device_id, 0);
 
     init_piano_keys(data->state, data->data);
+
+    init_sig_and_filtered_sample(data);
 
     gtk_run_zbi(data,argc, argv);
 

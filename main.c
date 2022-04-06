@@ -10,6 +10,9 @@ vis_data * init_vis_data(int argc, char *argv[], uint64_t *samples_played, ADSR 
 {
     vis_data * vis_d = malloc(sizeof(vis_data));
     memset(vis_d,0,sizeof(vis_data));
+    vis_d->filtered_sample = malloc(sizeof(float)*1024);
+    vis_d->sig_sample = malloc(sizeof(float)*1024);
+    vis_d->harmonics_sample = malloc(sizeof(float)*1024);
     ud *data = init_ud(samples_played, env, num_keys);
     vis_d->data = data;
     Uint8 *state = init_state_midi_keyboard(num_keys);
