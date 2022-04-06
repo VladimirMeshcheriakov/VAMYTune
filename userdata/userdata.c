@@ -14,9 +14,10 @@ ud *init_ud(uint64_t *samples_played, ADSR *env, size_t size)
     data->fstream = initArray(1);
     data->wav_manager = init_wav_management();
     data->fout_size = 0;
-    data->sig = malloc(sizeof(float)*1024);
-    data->harmonics = malloc(sizeof(float)*1024);
-    data->filtered = malloc(sizeof(float)*1024);
+    
+    data->sig = calloc(1024,sizeof(float));
+    data->harmonics = calloc(1024,sizeof(float));
+    data->filtered = calloc(1024,sizeof(float));
     // play the 0 frequency to have something to start with
     // 13 for all the frequencies that can be palyed
 

@@ -9,10 +9,6 @@ typedef struct
     ud* data;
     Uint8 *state;
 
-    float * sig;
-    float *response;
-    float *harmonics;
-
     int stop_thread;
 
     int argc;

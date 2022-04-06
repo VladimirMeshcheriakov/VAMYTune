@@ -13,7 +13,7 @@ int init_sdl_audio()
 }
 
 // Sets and an audio device, or sends  -1 if error
-SDL_AudioDeviceID audio_spec_set_data(ud *data, void *audio_callback)
+SDL_AudioDeviceID audio_spec_set_data(vis_data* data, void *audio_callback)
 {
     SDL_AudioSpec audio_spec_want, audio_spec;
 
@@ -49,31 +49,26 @@ void stop_app(SDL_AudioDeviceID audio_device_id, ud *data)
     SDL_Quit();
 }
 
-Uint8 *init_state_midi_keyboard(size_t size)
-{
-    Uint8 *state = calloc(size, sizeof(Uint8));
-    return state;
-}
+
+
 
 // Main function that is called by the main
-void init_run_app(ud *data, void *audio_callback, int argc, char *argv[])
+void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
 {
     init_sdl_audio();
     SDL_AudioDeviceID audio_device_id = audio_spec_set_data(data, audio_callback);
 
     SDL_PauseAudioDevice(audio_device_id, 0);
-    Uint8 *state = init_state_midi_keyboard(127);
 
-    init_piano_keys(state, data);
+    init_piano_keys(data->state, data->data);
 
-    gtk_run_zbi(data,state, argc, argv);
+    gtk_run_zbi(data,argc, argv);
 
-    fclose(data->fout);
-    if (data->wav_manager->recorded_samples)
+    fclose(data->data->fout);
+    if (data->data->wav_manager->recorded_samples)
     {
-        record(data->wav_manager->recorded_samples, data->fstream->array, "Bach.wav", "wb");
+        record(data->data->wav_manager->recorded_samples, data->data->fstream->array, "Bach.wav", "wb");
     }
 
-    free(state);
-    stop_app(audio_device_id, data);
+    stop_app(audio_device_id, data->data);
 }

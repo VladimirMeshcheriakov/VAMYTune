@@ -215,13 +215,14 @@ void filter_cut_around(complex_number *arr, size_t bot, size_t top, size_t size)
 
 void apply_filter_to_buffer(vis_data *data, size_t size)
 {
-    float * buf = data->sig;
-    float * mag = data->harmonics;
-    float * rep = data->response;
+    float * buf = data->data->sig;
+    float * mag = data->data->harmonics;
+    float * rep = data->data->filtered;
 
     complex_number *arr = fft(buf, size);
 
     // put your filter here
+    
     if(data->low_active)
     {
         filter_cut_from(arr,size,(size_t)((data->low_pass_cut * 1024)/44000));
@@ -238,14 +239,11 @@ void apply_filter_to_buffer(vis_data *data, size_t size)
     {
         filter_cut_between(arr,(size_t)((data->band_cut_low * 1024)/44000),(size_t)((data->band_cut_high * 1024)/44000),size);
     }
+    
     mag_table(arr,mag,size);
 
     ifft(arr,rep,size);
     free(arr);
-
-    for (size_t i = 0; i < size; i++)
-    {
-        buf[i] = rep[i];
-    }
+    
 }
 

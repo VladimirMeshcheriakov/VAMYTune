@@ -12,6 +12,6 @@
 #ifndef VIS_H
 #define VIS_H
 
-int gtk_run_zbi(ud * data, Uint8 * state,int argc, char **argv );
+int gtk_run_zbi(vis_data *vis_d, int argc, char **argv);
 
 #endif 

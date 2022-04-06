@@ -39,17 +39,10 @@ float octave_upp(float volume, double time, float freq)
 }
 
 // Evaluate the stage execution of a signal and send the final value
-float signal_treat(float volume, ud *data,int sid)
+float signal_treat(float volume, ud *data)
 {
     float val = 0.0;
-    //If playback activated
-    if(data->wav_manager->playback && (data->fout_size > data->wav_manager->played_samples+44))
-    {
-        read_from_wav(data->fout,"Bach.wav",data->wav_manager->playback_buffer);
-        //printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
-        val += data->wav_manager->playback_buffer[0];
-        data->wav_manager->played_samples +=8;
-    }
+    
 
     for (int i = 0; i < 127; i++)
     {   
@@ -63,7 +56,6 @@ float signal_treat(float volume, ud *data,int sid)
         }
         
     }
-    data->sig[sid] = val;
     return val;
 }
 

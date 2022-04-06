@@ -184,7 +184,7 @@ on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
     vis_data *vs = (vis_data *)user_data;
-    float *us = vs->harmonics;
+    float *us = vs->data->harmonics;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
@@ -259,8 +259,8 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
     vis_data *vs = (vis_data *)user_data;
-    float *us = vs->sig;
-    float *resp = vs->response;
+    float *us = vs->data->sig;
+    float *resp = vs->data->filtered;
     int zoom_x = vs->x_zoom;
     int zoom_y = vs->y_zoom;
 
@@ -388,13 +388,10 @@ void run_app(vis_data *my_data)
             update_effects(data);
             note_state(state, data);
             init_piano_keys(state, data);
+            
         }
         else
         {
-            if (p < 0)
-            {
-                break;
-            }
             snd_seq_event_t *event_;
             snd_seq_event_input(seq, &event_);
             if (event_)
@@ -405,7 +402,6 @@ void run_app(vis_data *my_data)
                 init_piano_keys(state, data);
             }
         }
-        apply_filter_to_buffer(my_data,1024);
     }
 }
 
@@ -422,25 +418,10 @@ thread_func(gpointer user_data)
     return NULL;
 }
 
-int gtk_run_zbi(ud *data, Uint8 *state, int argc, char **argv)
+int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
 {
     GThread *thread[N_THREADS];
 
-    vis_data vis_d;
-
-    vis_d.harmonics = data->harmonics;
-    vis_d.response = data->filtered;
-
-    vis_d.data = data;
-    vis_d.sig = data->sig;
-    vis_d.state = state;
-    vis_d.stop_thread = 1;
-    vis_d.argc = argc;
-    vis_d.argv = argv;
-    vis_d.x_zoom = 300;
-    vis_d.y_zoom = 300;
-
-    
     gtk_init(&argc, &argv);
 
     GtkBuilder *builder = gtk_builder_new();
@@ -485,61 +466,61 @@ int gtk_run_zbi(ud *data, Uint8 *state, int argc, char **argv)
 
     // Signals
 
-    g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), data);
+    g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), (gpointer) vis_d->data);
 
     // Destroy signal
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d.stop_thread);
+    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d->stop_thread);
 
     // Signal on the x_zoom value
-    g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_d.x_zoom);
+    g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_d->x_zoom);
     // Signal on the y_zoom value
-    g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_d.y_zoom);
+    g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_d->y_zoom);
 
     // Signal to the low_pass_activate
-    g_signal_connect(G_OBJECT(low_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.low_active);
+    g_signal_connect(G_OBJECT(low_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d->low_active);
     // Signal to the high_pass_activate
-    g_signal_connect(G_OBJECT(high_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.high_active);
+    g_signal_connect(G_OBJECT(high_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d->high_active);
     // Signal to the band_pass_active
-    g_signal_connect(G_OBJECT(band_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d.band_pass_active);
+    g_signal_connect(G_OBJECT(band_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_pass_active);
     // Signal to the band_cut_active
-    g_signal_connect(G_OBJECT(band_cut_activate), "toggled", G_CALLBACK(on_activate), &vis_d.band_cut_active);
+    g_signal_connect(G_OBJECT(band_cut_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_cut_active);
 
 
 
     GtkMultipleScales *band_cut_data_low = malloc(sizeof(GtkMultipleScales));
-    band_cut_data_low->data = &vis_d;
+    band_cut_data_low->data = vis_d;
     band_cut_data_low->lead = band_cut_high;
 
     GtkMultipleScales *band_cut_data_high = malloc(sizeof(GtkMultipleScales));
-    band_cut_data_high->data = &vis_d;
+    band_cut_data_high->data = vis_d;
     band_cut_data_high->lead = band_cut_low;
 
-    g_signal_connect(G_OBJECT(band_cut_low), "value_changed", G_CALLBACK(on_scale_band_cut_change_low), band_cut_data_low);
-    g_signal_connect(G_OBJECT(band_cut_high), "value_changed", G_CALLBACK(on_scale_band_cut_change_high), band_cut_data_high);
+    g_signal_connect(G_OBJECT(band_cut_low), "value_changed", G_CALLBACK(on_scale_band_cut_change_low), (gpointer) band_cut_data_low);
+    g_signal_connect(G_OBJECT(band_cut_high), "value_changed", G_CALLBACK(on_scale_band_cut_change_high), (gpointer) band_cut_data_high);
 
     GtkMultipleScales *band_pass_data_low = malloc(sizeof(GtkMultipleScales));
-    band_pass_data_low->data = &vis_d;
+    band_pass_data_low->data = vis_d;
     band_pass_data_low->lead = band_pass_high;
 
     GtkMultipleScales *band_pass_data_high = malloc(sizeof(GtkMultipleScales));
-    band_pass_data_high->data = &vis_d;
+    band_pass_data_high->data = vis_d;
     band_pass_data_high->lead = band_pass_low;
 
-    g_signal_connect(G_OBJECT(band_pass_low), "value_changed", G_CALLBACK(on_scale_band_change_low), band_pass_data_low);
-    g_signal_connect(G_OBJECT(band_pass_high), "value_changed", G_CALLBACK(on_scale_band_change_high), band_pass_data_high);
+    g_signal_connect(G_OBJECT(band_pass_low), "value_changed", G_CALLBACK(on_scale_band_change_low), (gpointer) band_pass_data_low);
+    g_signal_connect(G_OBJECT(band_pass_high), "value_changed", G_CALLBACK(on_scale_band_change_high), (gpointer) band_pass_data_high);
 
-    g_signal_connect(G_OBJECT(low_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change),&vis_d.low_pass_cut);
-    g_signal_connect(G_OBJECT(high_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change),&vis_d.high_pass_cut);
+    g_signal_connect(G_OBJECT(low_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change), &vis_d->low_pass_cut);
+    g_signal_connect(G_OBJECT(high_pass_cutoff),"value_changed",G_CALLBACK(on_scale_change),&vis_d->high_pass_cut);
 
     // Signal on the drawing area of the signal
-    g_signal_connect(G_OBJECT(da_signal), "draw", G_CALLBACK(on_draw_signal), &vis_d);
+    g_signal_connect(G_OBJECT(da_signal), "draw", G_CALLBACK(on_draw_signal), vis_d);
     // Signal on the drawing area of the harmonic
-    g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), &vis_d);
+    g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), vis_d);
 
     context = g_main_context_default();
 
     for (int n = 0; n < N_THREADS; ++n)
-        thread[n] = g_thread_new(NULL, thread_func, &vis_d);
+        thread[n] = g_thread_new(NULL, thread_func, vis_d);
 
     gtk_widget_show_all(GTK_WIDGET(window));
 
