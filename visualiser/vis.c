@@ -75,7 +75,6 @@ void apply_filter_to_sample(vis_data *data, size_t size)
     {
         double time = (double)i/44100.0;
         float val = global_signal(0.6,time,440);
-        printf("val: %f\n",val);
         buf[i] = val;
         rep[i] = val;
     }
@@ -111,7 +110,6 @@ void apply_filter_to_sample(vis_data *data, size_t size)
 float signal_treat(float volume, ud *data)
 {
     float val = 0.0;
-    
 
     for (int i = 0; i < 127; i++)
     {   
