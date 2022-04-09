@@ -38,26 +38,7 @@ float octave_upp(float volume, double time, float freq)
     return create_signal(volume, time, freq * 2.0);
 }
 
-// Evaluate the stage execution of a signal and send the final value
-float signal_treat(float volume, ud *data)
-{
-    float val = 0.0;
-    
 
-    for (int i = 0; i < 127; i++)
-    {   
-        if (data->all_keys->keys[i] || (data->time_management->time_table[i]->release_stage && (data->all_keys->effects[i] > 0.0) ))
-        {
-            val += data->all_keys->effects[i] * create_signal(volume, data->time_management->actual_time, data->all_keys->octave * piano_note_to_freq(i));
-        }
-        else
-        {
-            data->time_management->time_table[i]->release_stage = 0;
-        }
-        
-    }
-    return val;
-}
 
 // Updates the effect table
 void update_effects(vis_data *data)

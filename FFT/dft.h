@@ -47,6 +47,12 @@ typedef struct
 }vis_data;
 
 void apply_filter_to_buffer(vis_data *data, size_t size);
-void apply_filter_to_sample(vis_data *data, size_t size);
+void filter_cut_around(complex_number *arr, size_t bot, size_t top, size_t size);
+void filter_cut_between(complex_number *arr, size_t bot, size_t top,size_t size);
+void filter_cut_before(complex_number *arr,  size_t cut, size_t size);
+void filter_cut_from(complex_number *arr, size_t size, size_t cut);
+void mag_table(complex_number *table, float*mag,  size_t size);
+float *ifft(complex_number *buf, float * table, size_t size);
+complex_number *fft(float *data, size_t size);
 
 #endif
