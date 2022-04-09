@@ -48,7 +48,7 @@ float signal_treat(float volume, ud *data)
     {   
         if (data->all_keys->keys[i] || (data->time_management->time_table[i]->release_stage && (data->all_keys->effects[i] > 0.0) ))
         {
-            val += data->all_keys->effects[i]  * create_signal(volume, data->time_management->actual_time, data->all_keys->octave * piano_note_to_freq(i));
+            val += data->all_keys->effects[i] * create_signal(volume, data->time_management->actual_time, data->all_keys->octave * piano_note_to_freq(i));
         }
         else
         {
@@ -60,20 +60,23 @@ float signal_treat(float volume, ud *data)
 }
 
 // Updates the effect table
-void update_effects(ud *data)
+void update_effects(vis_data *data)
 {
     // printf_time(data->time_management->time_table,1);
     for (size_t i = 0; i < 127; i++)
     {
-        if (data->all_keys->keys[i] || data->time_management->time_table[i]->release_stage)
+        if (data->data->all_keys->keys[i] || data->data->time_management->time_table[i]->release_stage)
         {
-            data->all_keys->effects[i] = adsr_get_amplitude(data->time_management->actual_time, data->adsr, data->time_management->time_table[i]);
+            ADSR * adsr = init_ADSR_envelope(data->attack_phase,data->decay_phase,data->release_phase,data->attack_amp,data->decay_amp,data->sustain_amp,0.0);
+            data->data->all_keys->effects[i] = adsr_get_amplitude(data->data->time_management->actual_time, adsr, data->data->time_management->time_table[i]);
             // printf("%f\n", data->all_keys->effects[i]);
+            free(adsr);
         }
         else
         {
-            data->all_keys->effects[i] = 0;
+            data->data->all_keys->effects[i] = 0;
         }
+        
     }
 }
 

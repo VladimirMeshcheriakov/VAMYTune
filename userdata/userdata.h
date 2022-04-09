@@ -52,6 +52,6 @@ typedef struct
 
 } ud;
 
-ud * init_ud(uint64_t *samples_played, ADSR * env,  size_t size);
+ud * init_ud(uint64_t *samples_played, size_t size);
 void free_user_data(ud *data);
 #endif

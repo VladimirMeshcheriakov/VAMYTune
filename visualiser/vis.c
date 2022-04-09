@@ -73,6 +73,17 @@ on_activate(GtkWidget *a_check, gpointer user_data)
     return G_SOURCE_REMOVE;
 }
 
+
+static gboolean
+on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
+{
+    float *current_time = (float *)user_data;
+    float new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(a_spinner));
+    //g_print("%f\n",new_time);
+    *current_time = new_time;
+    return G_SOURCE_REMOVE;
+}
+
 // Scale move (normal)
 static gboolean
 on_scale_change(GtkWidget *a_scale, gpointer user_data)
@@ -240,7 +251,6 @@ on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
         }
         cpt += 1;
     }
-    printf("cpt 1 %d\n", cpt);
 
     /* Draw the curve */
     cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
@@ -386,7 +396,7 @@ void run_app(vis_data *my_data)
         int p = poll(pfds, npfds, 20);
         if (p == 0)
         {
-            update_effects(data);
+            update_effects(my_data);
             note_state(state, data);
             init_piano_keys(state, data);
             
@@ -398,7 +408,7 @@ void run_app(vis_data *my_data)
             if (event_)
             {
                 dump_event(event_, state);
-                update_effects(data);
+                update_effects(my_data);
                 note_state(state, data);
                 init_piano_keys(state, data);
             }
@@ -406,6 +416,86 @@ void run_app(vis_data *my_data)
         apply_filter_to_sample(my_data,1024);
     }
 }
+
+
+static gboolean
+on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+{
+
+    vis_data *vs = (vis_data *)user_data;
+    int zoom_x = 100;
+    int zoom_y = 100;
+
+    GdkRectangle da;            /* GtkDrawingArea size */
+    gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
+    gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+
+    GdkWindow *window = gtk_widget_get_window(widget);
+    int drawing_area_width = gtk_widget_get_allocated_width(widget);
+    int drawing_area_height = gtk_widget_get_allocated_height(widget);
+
+    /* Determine GtkDrawingArea dimensions */
+    gdk_window_get_geometry(window,
+                            &da.x,
+                            &da.y,
+                            &da.width,
+                            &da.height);
+
+    /* Draw on a black background */
+    cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+    cairo_paint(cr);
+
+    /* Change the transformation matrix */
+    // Put the origin of the graph into the botom left corner
+    cairo_translate(cr, 0, da.height);
+    cairo_scale(cr, zoom_x, -zoom_y);
+
+    /* Determine the data points to calculate (ie. those in the clipping zone */
+    cairo_device_to_user_distance(cr, &dx, &dy);
+    cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
+    cairo_set_line_width(cr, dx);
+
+    /* Draws x and y axis */
+    cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
+    cairo_move_to(cr, clip_x1, 0.0);
+    cairo_line_to(cr, clip_x2, 0.0);
+    cairo_move_to(cr, 0.0, clip_y1);
+    cairo_line_to(cr, 0.0, clip_y2);
+    cairo_stroke(cr);
+
+    float cord_table[] = {vs->attack_amp,vs->decay_amp,vs->sustain_amp,vs->sustain_amp,0.0};
+    
+
+    float sust_phase = (vs->attack_phase+vs->decay_phase+vs->release_phase)/3.0;
+
+    float sig_sum = vs->attack_phase+vs->decay_phase+vs->release_phase + sust_phase;
+
+    float factor = clip_x2/sig_sum;
+
+    int cpt = 0;
+
+    float y_tab[] = {0.0,vs->attack_phase,vs->decay_phase+vs->attack_phase,sust_phase+ vs->decay_phase+vs->attack_phase,vs->release_phase + sust_phase+ vs->decay_phase+vs->attack_phase};
+
+    i = clip_x1;
+
+
+    while(cpt<5)
+    {
+        cairo_line_to(cr,y_tab[cpt] * factor,clip_y2 * cord_table[cpt]);
+        cpt+=1;
+    }
+    
+
+    /* Draw the curve */
+    cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
+    cairo_stroke(cr);
+    // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
+
+    gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
+
+    return G_SOURCE_REMOVE;
+}
+
 
 static gpointer
 thread_func(gpointer user_data)
@@ -435,6 +525,7 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
         return 1;
     }
 
+    //Drawing Area
     // Window
     GtkWindow *window = GTK_WINDOW(gtk_builder_get_object(builder, "org.gtk.duel"));
 
@@ -444,10 +535,16 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
     // Drawing areas
     GtkDrawingArea *da_signal = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "area"));
     GtkDrawingArea *da_harmonics = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "harmonics_da"));
+    //ADSR da
+    GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da"));
 
     // SpinButtons
     GtkSpinButton *spx = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "X_ZOOM"));
     GtkSpinButton *spy = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Y_ZOOM"));
+    //ADSR Spin Buttons
+    GtkSpinButton *attack_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "attack_phase_control"));
+    GtkSpinButton *decay_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "decay_phase_control"));
+    GtkSpinButton *release_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "release_phase_control"));
 
     // Scale
     GtkScale *low_pass_cutoff = GTK_SCALE(gtk_builder_get_object(builder, "low_pass_cut"));
@@ -457,11 +554,20 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
     GtkScale *band_cut_low = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_low"));
     GtkScale *band_cut_high = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_high"));
 
+    //ADSR Scales
+    GtkScale *attack_bot = GTK_SCALE(gtk_builder_get_object(builder,"attack_bot"));
+    GtkScale *attack_top = GTK_SCALE(gtk_builder_get_object(builder,"attack_top"));
+    GtkScale *decay_bot = GTK_SCALE(gtk_builder_get_object(builder,"decay_bot"));
+    GtkScale *sustain = GTK_SCALE(gtk_builder_get_object(builder,"sustain"));
+
     // Check Buttons
     GtkCheckButton *low_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "low_pass_activate"));
     GtkCheckButton *high_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "high_pass_activate"));
     GtkCheckButton *band_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_pass_activate"));
     GtkCheckButton *band_cut_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_cut_activate"));
+
+    //Submit button
+    GtkButton *submit_adsr = GTK_BUTTON(gtk_builder_get_object(builder, "submit_adsr"));
 
     // Unreference the objects
     g_object_unref(builder);
@@ -486,6 +592,20 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
     g_signal_connect(G_OBJECT(band_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_pass_active);
     // Signal to the band_cut_active
     g_signal_connect(G_OBJECT(band_cut_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_cut_active);
+
+    //ADSR signals
+
+    g_signal_connect(G_OBJECT(attack_phase),"value_changed",G_CALLBACK(on_spinner_change),&vis_d->attack_phase);
+    g_signal_connect(G_OBJECT(decay_phase),"value_changed",G_CALLBACK(on_spinner_change),&vis_d->decay_phase);
+    g_signal_connect(G_OBJECT(release_phase),"value_changed",G_CALLBACK(on_spinner_change),&vis_d->release_phase);
+
+    g_signal_connect(G_OBJECT(attack_bot),"value_changed", G_CALLBACK(on_scale_change),&vis_d->attack_amp);
+    g_signal_connect(G_OBJECT(attack_top),"value_changed", G_CALLBACK(on_scale_change),&vis_d->decay_amp);
+    g_signal_connect(G_OBJECT(decay_bot),"value_changed", G_CALLBACK(on_scale_change),&vis_d->sustain_amp);
+    g_signal_connect(G_OBJECT(sustain),"value_changed", G_CALLBACK(on_scale_change),&vis_d->sustain_amp);
+
+    g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_adsr_draw), vis_d);
+
 
 
 

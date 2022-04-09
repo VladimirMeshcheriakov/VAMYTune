@@ -34,6 +34,16 @@ typedef struct
     float * sig_sample;
     float * filtered_sample;
     float * harmonics_sample;
+
+
+    float attack_amp;
+    float decay_amp;
+    float sustain_amp;
+
+    float attack_phase;
+    float decay_phase;
+    float release_phase;
+
 }vis_data;
 
 void apply_filter_to_buffer(vis_data *data, size_t size);
