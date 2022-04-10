@@ -26,7 +26,6 @@ void init_piano_keys(Uint8 *state, ud *data)
 // Do the key on properties
 void key_on(ud *data, int note_pos)
 {
-    printf("on\n");
     // if this key has been pressed already, it does not have to be re-set
     if (!(data->time_management->time_table[note_pos]->press_time_set))
     {
@@ -43,7 +42,6 @@ void key_on(ud *data, int note_pos)
 // Do the key off properties
 void key_off(ud *data, int note_pos)
 {
-    printf("off\n");
     // It is no longer pressed
     data->time_management->time_table[note_pos]->press_time_set = 0;
     // It is now released

@@ -29,6 +29,8 @@ typedef struct node
     struct node *next;
 } node;
 
+int node_val_count(node* head);
+void node_extract_min(node* list,node *sup);
 void print_sine_info(sig_info * sine_data);
 void node_insert_beg(node* head, sig_info * value);
 void node_insert_end(node* head, sig_info * value);

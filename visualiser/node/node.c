@@ -46,7 +46,27 @@ sig_info * init_null_struct()
 
 void print_sine_info(sig_info * sine_data)
 {
-    printf("{ Sine id %d , noise: %f , amp: %f, freq: %f\n",sine_data->id,sine_data->form,sine_data->amp,sine_data->freq);
+    switch (sine_data->type)
+    {
+    case 0:
+        printf("{ Sine id %d , amp: %f, freq: %f\n",sine_data->id,sine_data->amp,sine_data->freq);
+        break;
+    case 1:
+        printf("{ Triangle id %d ,  amp: %f, freq: %f\n",sine_data->id,sine_data->amp,sine_data->freq);
+        break;
+    case 2:
+        printf("{ Saw id %d ,  amp: %f, freq: %f\n",sine_data->id,sine_data->amp,sine_data->freq);
+        break;
+    case 3:
+        printf("{ Saw_composite id %d , components: %f , amp: %f, freq: %f\n",sine_data->id,sine_data->form,sine_data->amp,sine_data->freq);
+        break;
+    case 4:
+    printf("{ Square id %d , form: %f , amp: %f, freq: %f\n",sine_data->id,sine_data->form,sine_data->amp,sine_data->freq);
+        break;
+    
+    default:
+        break;
+    }
 }
 
 
@@ -335,4 +355,16 @@ void node_lower_id(node* head, int after_id)
         } 
         head = head->next;
     }
+}
+
+
+int node_val_count(node* head)
+{
+    int cpt = 0;
+    while (head->next != NULL)
+    {
+        cpt+=1;
+        head = head->next;
+    }
+    return cpt;
 }
