@@ -30,4 +30,6 @@ signal_params *init_signal_params();
 char * create_string_from_signal(sig_info * info);
 void find_scopes(char *arr, size_t len, signal_params *params);
 
+void write_to_triton(node * nodes);
+
 #endif 

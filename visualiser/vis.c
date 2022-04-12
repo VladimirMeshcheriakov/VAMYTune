@@ -2,15 +2,65 @@
 
 GMainContext *context;
 
+// Struct to manage follow up lifting of parameters
 typedef struct
 {
   GtkScale *lead;
   vis_data *data;
 } GtkMultipleScales;
 
+// Struct to pass node id and the param to modify
+typedef struct id_and_param
+{
+  int *id;
+  int param;
+} id_and_param;
+
+id_and_param *create_id_with_param(int *id, int param)
+{
+  id_and_param *out_param = malloc(sizeof(id_and_param));
+  out_param->id = id;
+  out_param->param = param;
+  return out_param;
+}
+
+typedef struct all_params_and_id
+{
+  struct id_and_param *amp;
+  struct id_and_param *freq;
+  struct id_and_param *composite;
+} all_params_and_id;
+
+all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite)
+{
+  all_params_and_id *all_params = malloc(sizeof(all_params_and_id));
+  all_params->amp = amp;
+  all_params->freq = freq;
+  all_params->composite = composite;
+  return all_params;
+}
+
+all_params_and_id *prepare_all_params(int *id)
+{
+  id_and_param *id_amp = create_id_with_param(id, 0);
+  id_and_param *id_freq = create_id_with_param(id, 1);
+  id_and_param *id_composite = create_id_with_param(id, 2);
+  all_params_and_id *all_params = init_all_params_id(id_amp, id_freq, id_composite);
+  return all_params;
+}
+
+void free_all_params(all_params_and_id *all_params)
+{
+  free(all_params->amp);
+  free(all_params->freq);
+  free(all_params->composite);
+  free(all_params);
+}
+
 char *global_file_data;
 size_t data_length;
-
+char global_file_name[] = "visualiser/glade_signals/signal.glade";
+char global_file_name_components[] = "visualiser/glade_signals/signal_components.glade";
 // The nodes of the different signals
 node *nodes;
 // The current highest id
@@ -19,63 +69,57 @@ int global_id = 0;
 GtkListBox *list;
 // The global frequency controller
 float global_freq = 0.0;
+
 /*
 The functions that are called on change of a scale or a button
 */
-
-
 
 void affect_new(GtkWidget *a_scale, float *old_val)
 {
   float new_val = gtk_range_get_value(GTK_RANGE(a_scale));
   *old_val = new_val;
 }
-
 gboolean on_scale_change_global_freq(GtkWidget *a_scale)
 {
   float new_freq = gtk_range_get_value(GTK_RANGE(a_scale));
-  // g_print("id: %d\n", id);
   global_freq = new_freq;
   return G_SOURCE_REMOVE;
 }
 
-gboolean on_scale_change_amp(GtkWidget *a_scale, gpointer user_data)
+gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
 {
-  int *id = (int *)user_data;
-  node *id_node = node_get_at(nodes, *id);
+  id_and_param *id_param = (id_and_param *)user_data;
+  printf("id: %d\n", *id_param->id);
+  node *id_node = node_get_at(nodes, *id_param->id);
   sig_info *sine_data = id_node->value;
-  affect_new(a_scale, &sine_data->amp);
+  float *param;
+  switch (id_param->param)
+  {
+  case 0:
+    param = &(sine_data->amp);
+    break;
+  case 1:
+    param = &(sine_data->freq);
+    break;
+  default:
+    param = &(sine_data->form);
+    break;
+  }
+  affect_new(a_scale, param);
   return G_SOURCE_REMOVE;
 }
-
-gboolean on_scale_change_form(GtkWidget *a_scale, gpointer user_data)
+gboolean on_delete_node_params(GtkWidget *a_button, gpointer user_data)
 {
-  int *id = (int *)user_data;
-  node *id_node = node_get_at(nodes, *id);
-  // print_sine_info(id_node->value);
-  sig_info *sine_data = id_node->value;
-  affect_new(a_scale, &sine_data->form);
-  return G_SOURCE_REMOVE;
-}
+  all_params_and_id *all_params = (all_params_and_id *)user_data;
+  int id = *all_params->amp->id;
 
-gboolean on_scale_change_freq(GtkWidget *a_scale, gpointer user_data)
-{
-  int *id = (int *)user_data;
-  node *id_node = node_get_at(nodes, *id);
-  sig_info *sine_data = id_node->value;
-  affect_new(a_scale, &sine_data->freq);
-  return G_SOURCE_REMOVE;
-}
+  GtkListBoxRow *to_delete = gtk_list_box_get_row_at_index(list, id);
 
-gboolean on_delete_node(GtkWidget *a_button, gpointer user_data)
-{
-  int *index = (int *)user_data;
-
-  GtkListBoxRow *to_delete = gtk_list_box_get_row_at_index(list, *index);
   gtk_container_remove(GTK_CONTAINER(list), GTK_WIDGET(to_delete));
 
-  node_lower_id(nodes, *index);
-  //node_print(nodes);
+  node_lower_id(nodes, id);
+  free_all_params(all_params);
+  // node_print(nodes);
 
   global_id -= 1;
 
@@ -93,11 +137,8 @@ gboolean on_toggle(GtkWidget *a_toggle_button, gpointer user_data)
 }
 
 /*
-
 The functions that draw the signal
-
 */
-
 void set_up_axes(GdkWindow *window, GdkRectangle *da, cairo_t *cr, gdouble *clip_x1, gdouble *clip_y1, gdouble *clip_x2, gdouble *clip_y2, gdouble *dx, gdouble *dy, int zoom_x, int zoom_y)
 {
 
@@ -126,13 +167,13 @@ void set_up_axes(GdkWindow *window, GdkRectangle *da, cairo_t *cr, gdouble *clip
 
 // Dynamically draws the signal
 static gboolean
-on_draw_created_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+on_draw_created_or_full_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
   int *id = (int *)user_data;
-  // g_print("index in draw %d\n",id);
-  node *id_node = node_get_at(nodes, *id);
-  sig_info *vs = id_node->value;
-  int zoom_x = 20;
+  float mult = 2.0;
+  node *id_node;
+  sig_info *vs;
+  int zoom_x = 30;
   int zoom_y = 100;
   GdkRectangle da;            /* GtkDrawingArea size */
   gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
@@ -141,244 +182,164 @@ on_draw_created_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int drawing_area_width = gtk_widget_get_allocated_width(widget);
   int drawing_area_height = gtk_widget_get_allocated_height(widget);
   set_up_axes(window, &da, cr, &clip_x1, &clip_x2, &clip_y1, &clip_y2, &dx, &dy, zoom_x, zoom_y);
-  int cpt = 0;
   float he = 0;
-  for (i = clip_x1; i < -clip_x1; i += fabs(clip_x1) * 2 / 512)
+  if (*id != -1)
   {
-    if (cpt < 1024)
-    {
-      double time = (i + fabs(clip_x1)) / 44100.0;
-      he = instance_signal(0.5, vs, time, global_freq);
-      cairo_line_to(cr, i, he);
-    }
-    cpt += 1;
+    mult = 1.0;
+    id_node = node_get_at(nodes, *id);
+    vs = id_node->value;
   }
-  cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
-  cairo_stroke(cr);
-  gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
-  return G_SOURCE_REMOVE;
-}
-
-static gboolean
-on_draw_full_signal(GtkWidget *widget, cairo_t *cr)
-{
-  int zoom_x = 10;
-  int zoom_y = 50;
-
-  GdkRectangle da;            /* GtkDrawingArea size */
-  gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
-  GdkWindow *window = gtk_widget_get_window(widget);
-  int drawing_area_width = gtk_widget_get_allocated_width(widget);
-  int drawing_area_height = gtk_widget_get_allocated_height(widget);
-  set_up_axes(window, &da, cr, &clip_x1, &clip_x2, &clip_y1, &clip_y2, &dx, &dy, zoom_x, zoom_y);
-
-  float he = 0;
   for (i = clip_x1; i < -clip_x1; i += fabs(clip_x1) * 2 / 512)
   {
+
     double time = (i + fabs(clip_x1)) / 44100.0;
-    he = global_signal(0.5, time, global_freq);
-    cairo_line_to(cr, i, 4.0 * he);
+    if (*id != -1)
+    {
+      he = instance_signal(0.5, vs, time, global_freq);
+    }
+    else
+    {
+      he = global_signal(0.5, time, global_freq);
+    }
+    cairo_line_to(cr, i, mult * he);
   }
-
   cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
   cairo_stroke(cr);
   gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
   return G_SOURCE_REMOVE;
 }
 
-void row_sine(GtkWidget *button)
+sig_info *create_and_append_null_sig_info(int *type)
 {
+  sig_info *sig_data = init_null_struct();
+  sig_data->type = *type;
+  sig_data->id = global_id;
+  node_insert_end(nodes, sig_data);
+  return sig_data;
+}
+
+void row_create(GtkWidget *button, gpointer userdata)
+{
+  sig_info *sig_data = (sig_info *)userdata;
+  print_sine_info(sig_data);
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/sine.glade", &error) == 0)
+  if (gtk_builder_add_from_file(builder, global_file_name, &error) == 0)
   {
     g_printerr("Error loading file: %s\n", error->message);
     g_clear_error(&error);
   }
 
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "sine_box"));
+  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "main_box"));
   GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sin_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sin_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sin_freq"));
+  GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sig_da"));
+  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sig_amp"));
+  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sig_freq"));
   GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
+  GtkLabel *name_label = GTK_LABEL(gtk_builder_get_object(builder, "main_label"));
 
-  sig_info *sine_data = init_null_struct();
-  sine_data->type = 0;
-  sine_data->id = global_id;
-  node_insert_end(nodes, sine_data);
+  switch (sig_data->type)
+  {
+  case 0:
+    gtk_label_set_text(name_label, "Sine");
+    break;
+  case 1:
+    gtk_label_set_text(name_label, "Triangle");
+    break;
+  case 2:
+    gtk_label_set_text(name_label, "Saw");
+    break;
+  }
 
   // Append the row to the list, the last parameter must be at -1 to allow to append at the end
   gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  //g_print("id : %d\n", sine_data->id);
 
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&sine_data->id);
-  g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&sine_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&sine_data->id);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&sine_data->id);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sine_data->id);
+  all_params_and_id *all_params = prepare_all_params(&sig_data->id);
 
+  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node_params), (gpointer)all_params);
+  g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_or_full_signal), (gpointer)&sig_data->id);
+  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->amp);
+  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->freq);
+  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sig_data->id);
   global_id += 1;
+
+  gtk_range_set_value(GTK_RANGE(amp), sig_data->amp);
+  gtk_range_set_value(GTK_RANGE(freq), sig_data->freq);
 
   gtk_widget_show_all(GTK_WIDGET(list));
   gtk_widget_show_all(GTK_WIDGET(sin_da));
 }
 
-void row_trig(GtkWidget *button)
+void row_create_composite(GtkWidget *button, gpointer userdata)
 {
+  sig_info *sig_data = (sig_info *)userdata;
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/trig.glade", &error) == 0)
+  if (gtk_builder_add_from_file(builder, global_file_name_components, &error) == 0)
   {
     g_printerr("Error loading file: %s\n", error->message);
     g_clear_error(&error);
   }
 
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "trig_box"));
+  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "main_box"));
   GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *trig_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "trig_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "trig_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "trig_freq"));
+  GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sig_da"));
+  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sig_amp"));
+  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sig_freq"));
+  GtkScale *components = GTK_SCALE(gtk_builder_get_object(builder, "sig_components"));
   GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
+  GtkLabel *name_label = GTK_LABEL(gtk_builder_get_object(builder, "main_label"));
+  GtkAdjustment *adj_format = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj3"));
 
-  sig_info *trig_data = init_null_struct();
-  trig_data->type = 1;
-  trig_data->id = global_id;
-  node_insert_end(nodes, trig_data);
+  switch (sig_data->type)
+  {
+  case 3:
+    gtk_label_set_text(name_label, "Saw Composite");
+    break;
+  case 4:
+    gtk_label_set_text(name_label, "Square");
+    // Change the adjustment parameter
+    gtk_adjustment_configure(adj_format, 0.0, -1.0, 1.0, 0.01, 10, 0);
+    gtk_scale_set_digits(components, 2);
+    break;
+  }
 
   // Append the row to the list, the last parameter must be at -1 to allow to append at the end
   gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  //g_print("id : %d\n", trig_data->id);
+  all_params_and_id *all_params = prepare_all_params(&sig_data->id);
 
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&trig_data->id);
-  g_signal_connect(G_OBJECT(trig_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&trig_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&trig_data->id);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&trig_data->id);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&trig_data->id);
-
+  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node_params), (gpointer)all_params);
+  g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_or_full_signal), (gpointer)&sig_data->id);
+  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->amp);
+  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->freq);
+  g_signal_connect(G_OBJECT(components), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->composite);
+  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sig_data->id);
   global_id += 1;
 
+  gtk_range_set_value(GTK_RANGE(amp), sig_data->amp);
+  gtk_range_set_value(GTK_RANGE(freq), sig_data->freq);
+  gtk_range_set_value(GTK_RANGE(components), sig_data->form);
+
   gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(trig_da));
+  gtk_widget_show_all(GTK_WIDGET(sin_da));
 }
 
-void row_saw(GtkWidget *button)
+static gboolean
+init_and_create_row(GtkWidget *button, gpointer userdata)
 {
-  GtkBuilder *builder = gtk_builder_new();
-  GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/saw.glade", &error) == 0)
-  {
-    g_printerr("Error loading file: %s\n", error->message);
-    g_clear_error(&error);
-  }
-
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "saw_box"));
-  GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *saw_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "saw_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "saw_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "saw_freq"));
-  GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-  sig_info *saw_data = init_null_struct();
-  saw_data->type = 2;
-  saw_data->id = global_id;
-  node_insert_end(nodes, saw_data);
-
-  // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-  gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  //g_print("id : %d\n", saw_data->id);
-
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(saw_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&saw_data->id);
-
-  global_id += 1;
-
-  gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(saw_da));
+  int *type = (int *)userdata;
+  sig_info *sig_data = create_and_append_null_sig_info(type);
+  row_create(button, sig_data);
+  return G_SOURCE_REMOVE;
 }
 
-void row_saw_composite(GtkWidget *button)
+static gboolean
+init_and_create_row_composite(GtkWidget *button, gpointer userdata)
 {
-  GtkBuilder *builder = gtk_builder_new();
-  GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/saw_composite.glade", &error) == 0)
-  {
-    g_printerr("Error loading file: %s\n", error->message);
-    g_clear_error(&error);
-  }
-
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "saw_box"));
-  GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *saw_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "saw_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "saw_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "saw_freq"));
-  GtkScale *components = GTK_SCALE(gtk_builder_get_object(builder, "saw_components"));
-  GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-  sig_info *saw_data = init_null_struct();
-  saw_data->type = 3;
-  saw_data->id = global_id;
-  node_insert_end(nodes, saw_data);
-
-  // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-  gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  //g_print("id : %d\n", saw_data->id);
-
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(saw_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(components), "value_changed", G_CALLBACK(on_scale_change_form), (gpointer)&saw_data->id);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&saw_data->id);
-
-  global_id += 1;
-
-  gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(saw_da));
-}
-
-void row_square(GtkWidget *button)
-{
-  GtkBuilder *builder = gtk_builder_new();
-  GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/square.glade", &error) == 0)
-  {
-    g_printerr("Error loading file: %s\n", error->message);
-    g_clear_error(&error);
-  }
-
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "square_box"));
-  GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *square_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "square_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "square_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "square_freq"));
-  GtkScale *shift = GTK_SCALE(gtk_builder_get_object(builder, "square_shift"));
-  GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-  sig_info *square_data = init_null_struct();
-  square_data->type = 4;
-  square_data->id = global_id;
-  node_insert_end(nodes, square_data);
-
-  // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-  gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  //g_print("id : %d\n", square_data->id);
-
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&square_data->id);
-  g_signal_connect(G_OBJECT(square_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&square_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&square_data->id);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&square_data->id);
-  g_signal_connect(G_OBJECT(shift), "value_changed", G_CALLBACK(on_scale_change_form), (gpointer)&square_data->id);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&square_data->id);
-
-  global_id += 1;
-
-  gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(square_da));
+  int *type = (int *)userdata;
+  sig_info *sig_data = create_and_append_null_sig_info(type);
+  row_create_composite(button, sig_data);
+  return G_SOURCE_REMOVE;
 }
 
 // Stops the main thread, quits the gtk
@@ -486,6 +447,7 @@ on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
     *high_cut = low_val;
     gtk_range_set_value(GTK_RANGE(high), low_val);
   }
+  return G_SOURCE_REMOVE;
 }
 
 // Scale move on the high side of the band filters
@@ -510,6 +472,7 @@ on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
     *low_cut = high_val;
     gtk_range_set_value(GTK_RANGE(low), high_val);
   }
+  return G_SOURCE_REMOVE;
 }
 
 // Scale move on the low side of the band filters
@@ -533,6 +496,7 @@ on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
     *high_cut = low_val;
     gtk_range_set_value(GTK_RANGE(high), low_val);
   }
+  return G_SOURCE_REMOVE;
 }
 
 // Scale move on the high side of the band filters
@@ -557,6 +521,7 @@ on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
     *low_cut = high_val;
     gtk_range_set_value(GTK_RANGE(low), high_val);
   }
+  return G_SOURCE_REMOVE;
 }
 
 // Dynamically draws the harmonics
@@ -722,7 +687,7 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
   int *load = (int *)data;
   if (*load == 0)
   {
-    guchar *uri = gtk_file_chooser_get_uri(file_chooser);
+    const char *uri = gtk_file_chooser_get_uri(file_chooser);
     if (uri == NULL)
     {
       g_print("uri null\n");
@@ -762,234 +727,106 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
     }
     else
     {
-      //g_print("%ld\n", data_size);
-      // Call parser here:
       signal_params *params = init_signal_params();
       find_scopes(pointer, data_size, params);
+
       while (params->signals->next != NULL)
       {
-        params->signals->value->id = global_id;
-
         switch (params->signals->value->type)
         {
         case 0:
         {
-          GtkBuilder *builder = gtk_builder_new();
-          GError *error = NULL;
-          if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/sine.glade", &error) == 0)
-          {
-            g_printerr("Error loading file: %s\n", error->message);
-            g_clear_error(&error);
-          }
-
-          GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "sine_box"));
-          GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-          GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sin_da"));
-          GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sin_amp"));
-          GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sin_freq"));
-          GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-          sig_info *sine_data = params->signals->value;
-          node_insert_end(nodes, sine_data);
-
-          // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-          gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-
-          g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&sine_data->id);
-          g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&sine_data->id);
-          g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&sine_data->id);
-          g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&sine_data->id);
-          g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sine_data->id);
-
-          global_id += 1;
-
-          gtk_range_set_value(GTK_RANGE(amp), sine_data->amp);
-          gtk_range_set_value(GTK_RANGE(freq), sine_data->freq);
-
-          gtk_widget_show_all(GTK_WIDGET(list));
-          gtk_widget_show_all(GTK_WIDGET(sin_da));
-
+          sig_info *sig_data = params->signals->value;
+          sig_data->id = global_id;
+          node_insert_end(nodes, sig_data);
+          row_create(NULL, (gpointer)sig_data);
           break;
         }
         case 1:
         {
-          GtkBuilder *builder = gtk_builder_new();
-          GError *error = NULL;
-          if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/trig.glade", &error) == 0)
-          {
-            g_printerr("Error loading file: %s\n", error->message);
-            g_clear_error(&error);
-          }
-
-          GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "trig_box"));
-          GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-          GtkDrawingArea *trig_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "trig_da"));
-          GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "trig_amp"));
-          GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "trig_freq"));
-          GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-          sig_info *trig_data = params->signals->value;
-          node_insert_end(nodes, trig_data);
-
-          // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-          gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-          //g_print("id : %d\n", trig_data->id);
-
-          g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&trig_data->id);
-          g_signal_connect(G_OBJECT(trig_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&trig_data->id);
-          g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&trig_data->id);
-          g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&trig_data->id);
-          g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&trig_data->id);
-
-          global_id += 1;
-
-          gtk_range_set_value(GTK_RANGE(amp), trig_data->amp);
-          gtk_range_set_value(GTK_RANGE(freq), trig_data->freq);
-
-          gtk_widget_show_all(GTK_WIDGET(list));
-          gtk_widget_show_all(GTK_WIDGET(trig_da));
-
+          sig_info *sig_data = params->signals->value;
+          sig_data->id = global_id;
+          node_insert_end(nodes, sig_data);
+          row_create(NULL, (gpointer)sig_data);
           break;
         }
         case 2:
         {
-          GtkBuilder *builder = gtk_builder_new();
-          GError *error = NULL;
-          if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/saw.glade", &error) == 0)
-          {
-            g_printerr("Error loading file: %s\n", error->message);
-            g_clear_error(&error);
-          }
-
-          GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "saw_box"));
-          GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-          GtkDrawingArea *saw_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "saw_da"));
-          GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "saw_amp"));
-          GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "saw_freq"));
-          GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-          sig_info *saw_data = params->signals->value;
-          node_insert_end(nodes, saw_data);
-
-          // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-          gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-          //g_print("id : %d\n", saw_data->id);
-
-          g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(saw_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&saw_data->id);
-
-          global_id += 1;
-
-          gtk_range_set_value(GTK_RANGE(amp), saw_data->amp);
-          gtk_range_set_value(GTK_RANGE(freq), saw_data->freq);
-
-          gtk_widget_show_all(GTK_WIDGET(list));
-          gtk_widget_show_all(GTK_WIDGET(saw_da));
-
+          sig_info *sig_data = params->signals->value;
+          sig_data->id = global_id;
+          node_insert_end(nodes, sig_data);
+          row_create(NULL, (gpointer)sig_data);
           break;
         }
         case 3:
         {
-          GtkBuilder *builder = gtk_builder_new();
-          GError *error = NULL;
-          if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/saw_composite.glade", &error) == 0)
-          {
-            g_printerr("Error loading file: %s\n", error->message);
-            g_clear_error(&error);
-          }
-
-          GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "saw_box"));
-          GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-          GtkDrawingArea *saw_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "saw_da"));
-          GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "saw_amp"));
-          GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "saw_freq"));
-          GtkScale *components = GTK_SCALE(gtk_builder_get_object(builder, "saw_components"));
-          GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-          sig_info *saw_data = params->signals->value;
-          node_insert_end(nodes, saw_data);
-
-          // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-          gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-          //g_print("id : %d\n", saw_data->id);
-
-          g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(saw_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(components), "value_changed", G_CALLBACK(on_scale_change_form), (gpointer)&saw_data->id);
-          g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&saw_data->id);
-
-          global_id += 1;
-
-          gtk_range_set_value(GTK_RANGE(amp), saw_data->amp);
-          gtk_range_set_value(GTK_RANGE(freq), saw_data->freq);
-          gtk_range_set_value(GTK_RANGE(components), saw_data->form);
-
-          gtk_widget_show_all(GTK_WIDGET(list));
-          gtk_widget_show_all(GTK_WIDGET(saw_da));
-
+          sig_info *sig_data = params->signals->value;
+          sig_data->id = global_id;
+          node_insert_end(nodes, sig_data);
+          row_create_composite(NULL, (gpointer)sig_data);
           break;
         }
         case 4:
         {
-          GtkBuilder *builder = gtk_builder_new();
-          GError *error = NULL;
-          if (gtk_builder_add_from_file(builder, "visualiser/glade_signals/square.glade", &error) == 0)
-          {
-            g_printerr("Error loading file: %s\n", error->message);
-            g_clear_error(&error);
-          }
-
-          GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "square_box"));
-          GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-          GtkDrawingArea *square_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "square_da"));
-          GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "square_amp"));
-          GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "square_freq"));
-          GtkScale *shift = GTK_SCALE(gtk_builder_get_object(builder, "square_shift"));
-          GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-
-          sig_info *square_data = params->signals->value;
-          node_insert_end(nodes, square_data);
-
-          // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-          gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-          //g_print("id : %d\n", square_data->id);
-
-          g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node), (gpointer)&square_data->id);
-          g_signal_connect(G_OBJECT(square_da), "draw", G_CALLBACK(on_draw_created_signal), (gpointer)&square_data->id);
-          g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_amp), (gpointer)&square_data->id);
-          g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_freq), (gpointer)&square_data->id);
-          g_signal_connect(G_OBJECT(shift), "value_changed", G_CALLBACK(on_scale_change_form), (gpointer)&square_data->id);
-          g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&square_data->id);
-
-          global_id += 1;
-
-          gtk_range_set_value(GTK_RANGE(amp), square_data->amp);
-          gtk_range_set_value(GTK_RANGE(freq), square_data->freq);
-          gtk_range_set_value(GTK_RANGE(shift), square_data->form);
-
-          gtk_widget_show_all(GTK_WIDGET(list));
-          gtk_widget_show_all(GTK_WIDGET(square_da));
+          sig_info *sig_data = params->signals->value;
+          sig_data->id = global_id;
+          node_insert_end(nodes, sig_data);
+          row_create_composite(NULL, (gpointer)sig_data);
           break;
         }
-        default:
-
-          break;
         }
         params->signals = params->signals->next;
       }
+      switch (params->signals->value->type)
+      {
+      case 0:
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create(NULL, (gpointer)sig_data);
+        break;
+      }
+      case 1:
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create(NULL, (gpointer)sig_data);
+        break;
+      }
+      case 2:
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create(NULL, (gpointer)sig_data);
+        break;
+      }
+      case 3:
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create_composite(NULL, (gpointer)sig_data);
+        break;
+      }
+      case 4:
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create_composite(NULL, (gpointer)sig_data);
+        break;
+      }
+      }
       node_free(params->signals);
       free(params);
+      g_object_unref(file);
+      free(pointer);
+      *load = 1;
+      return G_SOURCE_REMOVE;
     }
-    
-    g_object_unref(file);
-    free(pointer);
-    *load = 1;
-    return G_SOURCE_REMOVE;
   }
   else
   {
@@ -997,9 +834,11 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
   }
 }
 
-static gboolean on_save_state(GtkButton *a_button, gpointer data)
+static gboolean on_save_state(GtkButton *a_button)
 {
   write_to_triton(nodes);
+  return G_SOURCE_REMOVE;
+  ;
 }
 
 // Main loop of the app
@@ -1072,7 +911,7 @@ on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   GdkRectangle da;            /* GtkDrawingArea size */
   gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+  gdouble clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
 
   GdkWindow *window = gtk_widget_get_window(widget);
   int drawing_area_width = gtk_widget_get_allocated_width(widget);
@@ -1118,8 +957,6 @@ on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int cpt = 0;
 
   float y_tab[] = {0.0, vs->attack_phase, vs->decay_phase + vs->attack_phase, sust_phase + vs->decay_phase + vs->attack_phase, vs->release_phase + sust_phase + vs->decay_phase + vs->attack_phase};
-
-  i = clip_x1;
 
   while (cpt < 5)
   {
@@ -1173,8 +1010,8 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
   GtkFileChooser *my_file_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(builder, "file_load"));
   g_signal_connect(my_file_chooser, "update-preview", G_CALLBACK(update_preview_cb), &loaded);
 
-  GtkButton *save_file = GTK_BUTTON(gtk_builder_get_object(builder,"save_file"));
-  g_signal_connect(G_OBJECT(save_file),"clicked",G_CALLBACK(on_save_state),NULL);
+  GtkButton *save_file = GTK_BUTTON(gtk_builder_get_object(builder, "save_file"));
+  g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
   GtkButton *sine_submit = GTK_BUTTON(gtk_builder_get_object(builder, "sine_submit"));
   GtkButton *square_submit = GTK_BUTTON(gtk_builder_get_object(builder, "square_submit"));
   GtkButton *trig_submit = GTK_BUTTON(gtk_builder_get_object(builder, "trig_submit"));
@@ -1292,15 +1129,21 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
   // Signal on the drawing area of the harmonic
   g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), vis_d);
 
-  g_signal_connect(G_OBJECT(sine_submit), "clicked", G_CALLBACK(row_sine), NULL);
-  g_signal_connect(G_OBJECT(trig_submit), "clicked", G_CALLBACK(row_trig), NULL);
-  g_signal_connect(G_OBJECT(saw_submit), "clicked", G_CALLBACK(row_saw), NULL);
-  g_signal_connect(G_OBJECT(saw1_submit), "clicked", G_CALLBACK(row_saw_composite), NULL);
-  g_signal_connect(G_OBJECT(square_submit), "clicked", G_CALLBACK(row_square), NULL);
+  int sine_file = 0;
+  int trig_file = 1;
+  int saw_file = 2;
+  int saw_composite_file = 3;
+  int square_file = 4;
+  g_signal_connect(G_OBJECT(sine_submit), "clicked", G_CALLBACK(init_and_create_row), &sine_file);
+  g_signal_connect(G_OBJECT(trig_submit), "clicked", G_CALLBACK(init_and_create_row), &trig_file);
+  g_signal_connect(G_OBJECT(saw_submit), "clicked", G_CALLBACK(init_and_create_row), &saw_file);
+  g_signal_connect(G_OBJECT(saw1_submit), "clicked", G_CALLBACK(init_and_create_row_composite), &saw_composite_file);
+  g_signal_connect(G_OBJECT(square_submit), "clicked", G_CALLBACK(init_and_create_row_composite), &square_file);
 
   g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_global_freq), NULL);
 
-  g_signal_connect(G_OBJECT(full_sig), "draw", G_CALLBACK(on_draw_full_signal), NULL);
+  int full_sig_id = -1;
+  g_signal_connect(G_OBJECT(full_sig), "draw", G_CALLBACK(on_draw_created_or_full_signal), &full_sig_id);
 
   context = g_main_context_default();
 

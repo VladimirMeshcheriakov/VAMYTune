@@ -12,13 +12,13 @@
     <property name="step-increment">0.10</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkBox" id="trig_box">
+  <object class="GtkBox" id="main_box">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="orientation">vertical</property>
     <property name="spacing">29</property>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="action_and_name_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <child>
@@ -35,16 +35,29 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkToggleButton" id="mute">
+            <property name="label" translatable="yes">mute</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="main_label">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="label" translatable="yes">Triangle
+            <property name="label" translatable="yes">Sine
 </property>
           </object>
           <packing>
             <property name="expand">True</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
@@ -55,24 +68,24 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="control_and_da_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="spacing">90</property>
         <child>
-          <object class="GtkBox">
+          <object class="GtkBox" id="control_box">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <property name="spacing">46</property>
             <property name="homogeneous">True</property>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="amplitude_box">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="amplitude_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">amplitude</property>
@@ -84,7 +97,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="trig_amp">
+                  <object class="GtkScale" id="sig_amp">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj1</property>
@@ -105,12 +118,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="frequency_box">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="frequency_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">frequency</property>
@@ -122,7 +135,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="trig_freq">
+                  <object class="GtkScale" id="sig_freq">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj2</property>
@@ -149,7 +162,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkDrawingArea" id="trig_da">
+          <object class="GtkDrawingArea" id="sig_da">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
           </object>

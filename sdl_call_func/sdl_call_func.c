@@ -55,7 +55,6 @@ void init_sig_and_filtered_sample(vis_data *data)
 {
     for (size_t i = 0; i < 1024; i++)
     {
-        double time = i/ 44100.0;
         data->sig_sample[i] = 0;
         data->filtered_sample[i] = 0;
     }

@@ -118,6 +118,7 @@ void find_scopes(char *arr, size_t len, signal_params *params)
       break;
     }
   }
+  node_print(params->signals);
 }
 
 
