@@ -72,7 +72,7 @@ void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
 
     init_sig_and_filtered_sample(data);
 
-    gtk_run_zbi(data,argc, argv);
+    gtk_run_app(data,argc, argv);
 
     fclose(data->data->fout);
     if (data->data->wav_manager->recorded_samples)

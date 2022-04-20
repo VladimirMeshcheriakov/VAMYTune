@@ -1,4 +1,4 @@
-#include "../node/node.h"
+#include "../signal_creator/signal_creator_node_adder/list_node_adder.h"
 
 #ifndef LOAD_SAVE_TRITON_H
 #define LOAD_SAVE_TRITON_H
@@ -26,10 +26,7 @@ typedef struct signal_params
 
 } signal_params;
 
-signal_params *init_signal_params();
-char * create_string_from_signal(sig_info * info);
-void find_scopes(char *arr, size_t len, signal_params *params);
-
-void write_to_triton(node * nodes);
+gboolean update_preview_cb(GtkFileChooser *file_chooser, gpointer data);
+gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button);
 
 #endif 

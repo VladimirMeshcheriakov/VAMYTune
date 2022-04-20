@@ -81,11 +81,12 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkWindow" id="org.gtk.duel">
+  <object class="GtkWindow" id="main_window">
     <property name="width-request">480</property>
     <property name="height-request">240</property>
     <property name="visible">True</property>
     <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Triton</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
@@ -306,6 +307,7 @@
               </object>
               <packing>
                 <property name="tab-expand">True</property>
+                <property name="tab-fill">False</property>
                 <property name="reorderable">True</property>
                 <property name="detachable">True</property>
               </packing>
@@ -959,6 +961,7 @@
               <packing>
                 <property name="position">1</property>
                 <property name="tab-expand">True</property>
+                <property name="tab-fill">False</property>
                 <property name="reorderable">True</property>
                 <property name="detachable">True</property>
               </packing>
@@ -1247,6 +1250,7 @@
               <packing>
                 <property name="position">2</property>
                 <property name="tab-expand">True</property>
+                <property name="tab-fill">False</property>
                 <property name="reorderable">True</property>
                 <property name="detachable">True</property>
               </packing>

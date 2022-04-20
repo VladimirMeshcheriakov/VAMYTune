@@ -31,26 +31,6 @@ void on_destroy(__attribute_maybe_unused__  GtkWidget *Widget, gpointer user_dat
   gtk_main_quit();
 }
 
-// Changes the x zoom
-static gboolean
-on_x(GtkWidget *a_spinner, gpointer user_data)
-{
-  int *x_zoom = (int *)user_data;
-  int x = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-  *x_zoom = x;
-  return G_SOURCE_REMOVE;
-}
-
-// Changes the y zoom
-static gboolean
-on_y(GtkWidget *a_spinner, gpointer user_data)
-{
-  int *y_zoom = (int *)user_data;
-  int y = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-  *y_zoom = y;
-  return G_SOURCE_REMOVE;
-}
-
 // Key_change
 static gboolean key_released(__attribute_maybe_unused__  GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
@@ -76,9 +56,28 @@ static gboolean key_released(__attribute_maybe_unused__  GtkWidget *widget, GdkE
   return GDK_EVENT_PROPAGATE;
 }
 
-// Toggles the activation
+// Changes the x zoom
 static gboolean
-on_activate(__attribute_maybe_unused__  GtkWidget *a_check, gpointer user_data)
+on_x(GtkWidget *a_spinner, gpointer user_data)
+{
+  int *x_zoom = (int *)user_data;
+  int x = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
+  *x_zoom = x;
+  return G_SOURCE_REMOVE;
+}
+
+// Changes the y zoom
+static gboolean
+on_y(GtkWidget *a_spinner, gpointer user_data)
+{
+  int *y_zoom = (int *)user_data;
+  int y = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
+  *y_zoom = y;
+  return G_SOURCE_REMOVE;
+}
+
+// Toggles the activation
+gboolean on_activate(__attribute_maybe_unused__  GtkWidget *a_check, gpointer user_data)
 {
   int *old_state = (int *)user_data;
   // Flip state
@@ -87,8 +86,7 @@ on_activate(__attribute_maybe_unused__  GtkWidget *a_check, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-static gboolean
-on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
+gboolean on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
 {
   float *current_time = (float *)user_data;
   float new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(a_spinner));
@@ -98,8 +96,7 @@ on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
 }
 
 // Scale move (normal)
-static gboolean
-on_scale_change(GtkWidget *a_scale, gpointer user_data)
+gboolean on_scale_change(GtkWidget *a_scale, gpointer user_data)
 {
   float *old_val = (float *)user_data;
   float actual_val = gtk_range_get_value(GTK_RANGE(a_scale));
@@ -108,8 +105,7 @@ on_scale_change(GtkWidget *a_scale, gpointer user_data)
 }
 
 // Scale move on the low side of the band filters
-static gboolean
-on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
+gboolean on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
 {
   GtkMultipleScales *data = (GtkMultipleScales *)user_data;
 
@@ -132,8 +128,7 @@ on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
 }
 
 // Scale move on the high side of the band filters
-static gboolean
-on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
+gboolean on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
 {
   GtkMultipleScales *data = (GtkMultipleScales *)user_data;
 
@@ -157,8 +152,7 @@ on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
 }
 
 // Scale move on the low side of the band filters
-static gboolean
-on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
+gboolean on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
 {
   GtkMultipleScales *data = (GtkMultipleScales *)user_data;
 
@@ -181,8 +175,7 @@ on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
 }
 
 // Scale move on the high side of the band filters
-static gboolean
-on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
+gboolean on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
 {
   GtkMultipleScales *data = (GtkMultipleScales *)user_data;
 
@@ -214,8 +207,7 @@ Filters Drawing
 */
 
 // Dynamically draws the harmonics
-static gboolean
-on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+gboolean on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
   vis_data *vs = (vis_data *)user_data;
   float *us = vs->harmonics_sample;
@@ -277,8 +269,7 @@ on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 }
 
 // Dynamically draws the signal
-static gboolean
-on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+gboolean on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
   vis_data *vs = (vis_data *)user_data;
@@ -362,86 +353,8 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////:
 
-static gboolean
-update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
-{
-  int *load = (int *)data;
-  if (*load == 0)
-  {
-    const char *uri = gtk_file_chooser_get_uri(file_chooser);
-    if (uri == NULL)
-    {
-      g_print("uri null\n");
-      return G_SOURCE_REMOVE;
-    }
-    g_print("%s\n", uri);
-    GFile *file = g_file_new_for_uri(uri);
-    if (file == NULL)
-    {
-      g_print("file null\n");
-      return G_SOURCE_REMOVE;
-    }
-    GFileInfo *info;
-    info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
-    if (info == NULL)
-    {
-      g_print("info null\n");
-      return G_SOURCE_REMOVE;
-    }
-    GBytes *file_bytes = g_file_load_bytes(file, NULL, NULL, NULL);
-    if (file_bytes == NULL)
-    {
-      g_print("bytes null\n");
-      return G_SOURCE_REMOVE;
-    }
-    size_t data_size = 0;
-    char *pointer = g_bytes_get_data(file_bytes, &data_size);
-    if (pointer == NULL)
-    {
-      g_print("pointer null\n");
-      return G_SOURCE_REMOVE;
-    }
-    signal_params *params = init_signal_params();
-    find_scopes(pointer, data_size, params);
-    params->signals = params->signals->next;
-    while (params->signals != NULL)
-    {
-      if(params->signals->value->type<3)
-      {
-        //Simple types
-        sig_info *sig_data = params->signals->value;
-        sig_data->id = global_id;
-        node_insert_end(nodes, sig_data);
-        row_create(NULL, (gpointer)sig_data);
-      }
-      else
-      {
-        sig_info *sig_data = params->signals->value;
-        sig_data->id = global_id;
-        node_insert_end(nodes, sig_data);
-        row_create_composite(NULL, (gpointer)sig_data);
-      }
-      params->signals = params->signals->next;
-    }
-    node_free(params->signals);
-    free(params);
-    g_object_unref(file);
-    free(pointer);
-    *load = 1;
-    return G_SOURCE_REMOVE;
-  }
-  return G_SOURCE_REMOVE;
-}
 
-static gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button)
-{
-  write_to_triton(nodes);
-  return G_SOURCE_REMOVE;
-}
-
-
-static gboolean
-on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
 
   vis_data *vs = (vis_data *)user_data;
@@ -573,7 +486,7 @@ void run_app(vis_data *my_data)
   }
 }
 
-
+//Thread Function to run the main app
 static gpointer
 thread_func(gpointer user_data)
 {
@@ -587,6 +500,7 @@ thread_func(gpointer user_data)
   return NULL;
 }
 
+//Thread function to update the adsr effects
 static gpointer
 thread_update(gpointer user_data)
 {
@@ -601,13 +515,17 @@ thread_update(gpointer user_data)
 }
 
 
-int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
+int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 {
+  //The table of threads
   GThread *thread[2];
+  //! WARNING this parameter has to be removed to allow multiple saves and loads
   int loaded = 0;
+  //Init the gtk
   gtk_init(&argc, &argv);
+  //Init the node structure
   nodes = node_build_sentinel();
-
+  //Init the builder
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
   if (gtk_builder_add_from_file(builder, "visualiser/plain.glade", &error) == 0)
@@ -617,44 +535,63 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
     return 1;
   }
 
-  // Signal
+  /*
+    Top level Widgets
+      - Main Window of the application
+      - File Chooser (allows to load files)
+      - Save button (allows to save a current signal to a file)
+  */
 
-  list = GTK_LIST_BOX(gtk_builder_get_object(builder, "list"));
-
+  //Main Window
+  GtkWindow *window = GTK_WINDOW(gtk_builder_get_object(builder, "main_window"));
+  //FileChooser
   GtkFileChooser *my_file_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(builder, "file_load"));
-  g_signal_connect(my_file_chooser, "update-preview", G_CALLBACK(update_preview_cb), &loaded);
-
+  //Save Button
   GtkButton *save_file = GTK_BUTTON(gtk_builder_get_object(builder, "save_file"));
-  g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
+
+  /*
+    Signal Creator Widgets
+      - Drawing Area on which the full signal is drawn
+      - List Box that contains all the basic signals
+      - Scale that sets the main frequency of the signal for visual purposes
+      - Buttons allowing to add a new basic signals to the List Box
+  */
+
+  //Drawing Area for the full signal
+  GtkDrawingArea *full_sig = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "full_sig"));
+  //List Box to put the basic signals in
+  list = GTK_LIST_BOX(gtk_builder_get_object(builder, "list"));
+  // Global visual frequency of the signal
+  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "global_freq"));
+
+  //Submition BUttons
   GtkButton *sine_submit = GTK_BUTTON(gtk_builder_get_object(builder, "sine_submit"));
   GtkButton *square_submit = GTK_BUTTON(gtk_builder_get_object(builder, "square_submit"));
   GtkButton *trig_submit = GTK_BUTTON(gtk_builder_get_object(builder, "trig_submit"));
   GtkButton *saw_submit = GTK_BUTTON(gtk_builder_get_object(builder, "saw_submit"));
   GtkButton *saw1_submit = GTK_BUTTON(gtk_builder_get_object(builder, "saw1_submit"));
 
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "global_freq"));
-
-  GtkDrawingArea *full_sig = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "full_sig"));
-
-  // Window
-  GtkWindow *window = GTK_WINDOW(gtk_builder_get_object(builder, "org.gtk.duel"));
-
-  // Title of the window
-  gtk_window_set_title(GTK_WINDOW(window), "filter app");
+  /*
+    Filter Manager Widgets
+    - Drawing Areas for the harmonics and the proper signal
+    - Spin Buttons that allow to zoom onto the signal
+    - Check Buttons that allow to choose a particular filter
+    - Scales to set the different frequency filter values
+  */
 
   // Drawing areas
   GtkDrawingArea *da_signal = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "area"));
   GtkDrawingArea *da_harmonics = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "harmonics_da"));
-  // ADSR da
-  GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da"));
 
   // SpinButtons
   GtkSpinButton *spx = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "X_ZOOM"));
   GtkSpinButton *spy = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "Y_ZOOM"));
-  // ADSR Spin Buttons
-  GtkSpinButton *attack_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "attack_phase_control"));
-  GtkSpinButton *decay_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "decay_phase_control"));
-  GtkSpinButton *release_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "release_phase_control"));
+
+  // Check Buttons
+  GtkCheckButton *low_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "low_pass_activate"));
+  GtkCheckButton *high_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "high_pass_activate"));
+  GtkCheckButton *band_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_pass_activate"));
+  GtkCheckButton *band_cut_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_cut_activate"));
 
   // Scale
   GtkScale *low_pass_cutoff = GTK_SCALE(gtk_builder_get_object(builder, "low_pass_cut"));
@@ -664,31 +601,53 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
   GtkScale *band_cut_low = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_low"));
   GtkScale *band_cut_high = GTK_SCALE(gtk_builder_get_object(builder, "band_cut_high"));
 
+
+  /*
+    ADSR Creator Widgets
+      - Drawing Area for the ADSR signal
+      - The Spin Buttons for setting the times of each phase
+      - The Sacels to set the relative amplitude
+  */
+
+  // ADSR da
+  GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da"));
+
+  // ADSR Spin Buttons
+  GtkSpinButton *attack_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "attack_phase_control"));
+  GtkSpinButton *decay_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "decay_phase_control"));
+  GtkSpinButton *release_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "release_phase_control"));
+
   // ADSR Scales
   GtkScale *attack_bot = GTK_SCALE(gtk_builder_get_object(builder, "attack_bot"));
   GtkScale *attack_top = GTK_SCALE(gtk_builder_get_object(builder, "attack_top"));
   GtkScale *decay_bot = GTK_SCALE(gtk_builder_get_object(builder, "decay_bot"));
   GtkScale *sustain = GTK_SCALE(gtk_builder_get_object(builder, "sustain"));
 
-  // Check Buttons
-  GtkCheckButton *low_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "low_pass_activate"));
-  GtkCheckButton *high_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "high_pass_activate"));
-  GtkCheckButton *band_pass_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_pass_activate"));
-  GtkCheckButton *band_cut_activate = GTK_CHECK_BUTTON(gtk_builder_get_object(builder, "band_cut_activate"));
 
-  // Unreference the objects
+
+  // Unreference the builder, since all the wanted object were built
   g_object_unref(builder);
 
-  // Signals
+  /*
+    Main Utility Signals
+  */
 
+  //Set the chosen file
+  g_signal_connect(my_file_chooser, "update-preview", G_CALLBACK(update_preview_cb), &loaded);
+  //Save a current configuration
+  g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
+  // Track the recording functionalities
   g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), (gpointer)vis_d->data);
-
   // Destroy signal
   g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d->stop_thread);
 
-  // Signal on the x_zoom value
+  /*
+    Filter Window Signals
+  */
+
+  // Signal on the x_zoom value of the filter Drawing area
   g_signal_connect(G_OBJECT(spx), "value_changed", G_CALLBACK(on_x), &vis_d->x_zoom);
-  // Signal on the y_zoom value
+  // Signal on the y_zoom value of the filter Drawing area
   g_signal_connect(G_OBJECT(spy), "value_changed", G_CALLBACK(on_y), &vis_d->y_zoom);
 
   // Signal to the low_pass_activate
@@ -699,6 +658,35 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
   g_signal_connect(G_OBJECT(band_pass_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_pass_active);
   // Signal to the band_cut_active
   g_signal_connect(G_OBJECT(band_cut_activate), "toggled", G_CALLBACK(on_activate), &vis_d->band_cut_active);
+
+  GtkMultipleScales *band_cut_data_low = malloc(sizeof(GtkMultipleScales));
+  band_cut_data_low->data = vis_d;
+  band_cut_data_low->lead = band_cut_high;
+
+  GtkMultipleScales *band_cut_data_high = malloc(sizeof(GtkMultipleScales));
+  band_cut_data_high->data = vis_d;
+  band_cut_data_high->lead = band_cut_low;
+
+  GtkMultipleScales *band_pass_data_low = malloc(sizeof(GtkMultipleScales));
+  band_pass_data_low->data = vis_d;
+  band_pass_data_low->lead = band_pass_high;
+
+  GtkMultipleScales *band_pass_data_high = malloc(sizeof(GtkMultipleScales));
+  band_pass_data_high->data = vis_d;
+  band_pass_data_high->lead = band_pass_low;
+
+  g_signal_connect(G_OBJECT(band_cut_low), "value_changed", G_CALLBACK(on_scale_band_cut_change_low), (gpointer)band_cut_data_low);
+  g_signal_connect(G_OBJECT(band_cut_high), "value_changed", G_CALLBACK(on_scale_band_cut_change_high), (gpointer)band_cut_data_high);
+  g_signal_connect(G_OBJECT(band_pass_low), "value_changed", G_CALLBACK(on_scale_band_change_low), (gpointer)band_pass_data_low);
+  g_signal_connect(G_OBJECT(band_pass_high), "value_changed", G_CALLBACK(on_scale_band_change_high), (gpointer)band_pass_data_high);
+  g_signal_connect(G_OBJECT(low_pass_cutoff), "value_changed", G_CALLBACK(on_scale_change), &vis_d->low_pass_cut);
+  g_signal_connect(G_OBJECT(high_pass_cutoff), "value_changed", G_CALLBACK(on_scale_change), &vis_d->high_pass_cut);
+
+  // Signal on the drawing area of the signal
+  g_signal_connect(G_OBJECT(da_signal), "draw", G_CALLBACK(on_draw_signal), vis_d);
+  // Signal on the drawing area of the harmonic
+  g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), vis_d);
+
 
   // ADSR signals
 
@@ -713,41 +701,12 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
 
   g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_adsr_draw), vis_d);
 
-  GtkMultipleScales *band_cut_data_low = malloc(sizeof(GtkMultipleScales));
-  band_cut_data_low->data = vis_d;
-  band_cut_data_low->lead = band_cut_high;
-
-  GtkMultipleScales *band_cut_data_high = malloc(sizeof(GtkMultipleScales));
-  band_cut_data_high->data = vis_d;
-  band_cut_data_high->lead = band_cut_low;
-
-  g_signal_connect(G_OBJECT(band_cut_low), "value_changed", G_CALLBACK(on_scale_band_cut_change_low), (gpointer)band_cut_data_low);
-  g_signal_connect(G_OBJECT(band_cut_high), "value_changed", G_CALLBACK(on_scale_band_cut_change_high), (gpointer)band_cut_data_high);
-
-  GtkMultipleScales *band_pass_data_low = malloc(sizeof(GtkMultipleScales));
-  band_pass_data_low->data = vis_d;
-  band_pass_data_low->lead = band_pass_high;
-
-  GtkMultipleScales *band_pass_data_high = malloc(sizeof(GtkMultipleScales));
-  band_pass_data_high->data = vis_d;
-  band_pass_data_high->lead = band_pass_low;
-
-  g_signal_connect(G_OBJECT(band_pass_low), "value_changed", G_CALLBACK(on_scale_band_change_low), (gpointer)band_pass_data_low);
-  g_signal_connect(G_OBJECT(band_pass_high), "value_changed", G_CALLBACK(on_scale_band_change_high), (gpointer)band_pass_data_high);
-
-  g_signal_connect(G_OBJECT(low_pass_cutoff), "value_changed", G_CALLBACK(on_scale_change), &vis_d->low_pass_cut);
-  g_signal_connect(G_OBJECT(high_pass_cutoff), "value_changed", G_CALLBACK(on_scale_change), &vis_d->high_pass_cut);
-
-  // Signal on the drawing area of the signal
-  g_signal_connect(G_OBJECT(da_signal), "draw", G_CALLBACK(on_draw_signal), vis_d);
-  // Signal on the drawing area of the harmonic
-  g_signal_connect(G_OBJECT(da_harmonics), "draw", G_CALLBACK(on_draw_harmonics), vis_d);
-
   int sine_file = 0;
   int trig_file = 1;
   int saw_file = 2;
   int saw_composite_file = 3;
   int square_file = 4;
+
   g_signal_connect(G_OBJECT(sine_submit), "clicked", G_CALLBACK(init_and_create_row), &sine_file);
   g_signal_connect(G_OBJECT(trig_submit), "clicked", G_CALLBACK(init_and_create_row), &trig_file);
   g_signal_connect(G_OBJECT(saw_submit), "clicked", G_CALLBACK(init_and_create_row), &saw_file);

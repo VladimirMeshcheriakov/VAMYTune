@@ -23,9 +23,9 @@ note_state_utils/note_state_utils.c \
 basic_signals/basic_signals.c \
 signals/signals.c \
 visualiser/final_signal_production/final_signal_production.c \
-visualiser/load_save_triton/load_save_triton.c \
 visualiser/signal_creator/signal_creator_utils/signal_creator_utils.c \
 visualiser/signal_creator/signal_creator_node_adder/list_node_adder.c \
+visualiser/load_save_triton/load_save_triton.c \
 visualiser/vis.c \
 sdl_call_func/sdl_call_func.c \
 audio_callback/audio_callback.c 
@@ -51,9 +51,9 @@ note_state_utils/note_state_utils.o \
 basic_signals/basic_signals.o \
 signals/signals.o \
 visualiser/final_signal_production/final_signal_production.o \
-visualiser/load_save_triton/load_save_triton.o \
 visualiser/signal_creator/signal_creator_utils/signal_creator_utils.o \
 visualiser/signal_creator/signal_creator_node_adder/list_node_adder.o \
+visualiser/load_save_triton/load_save_triton.o \
 visualiser/vis.o \
 sdl_call_func/sdl_call_func.o \
 audio_callback/audio_callback.o \
@@ -82,9 +82,9 @@ clean:
 	basic_signals/basic_signals \
 	signals/signals \
 	visualiser/final_signal_production/final_signal_production \
-	visualiser/load_save_triton/load_save_triton \
 	visualiser/signal_creator/signal_creator_utils/signal_creator_utils \
 	visualiser/signal_creator/signal_creator_node_adder/list_node_adder \
+	visualiser/load_save_triton/load_save_triton \
 	visualiser/vis \
 	sdl_call_func/sdl_call_func \
 	audio_callback/audio_callback \

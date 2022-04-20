@@ -150,3 +150,80 @@ void write_to_triton(node * nodes)
     fputc('\n',file);
     fclose(file);
 }
+
+
+gboolean update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
+{
+  int *load = (int *)data;
+  if (*load == 0)
+  {
+    const char *uri = gtk_file_chooser_get_uri(file_chooser);
+    if (uri == NULL)
+    {
+      g_print("uri null\n");
+      return G_SOURCE_REMOVE;
+    }
+    g_print("%s\n", uri);
+    GFile *file = g_file_new_for_uri(uri);
+    if (file == NULL)
+    {
+      g_print("file null\n");
+      return G_SOURCE_REMOVE;
+    }
+    GFileInfo *info;
+    info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    if (info == NULL)
+    {
+      g_print("info null\n");
+      return G_SOURCE_REMOVE;
+    }
+    GBytes *file_bytes = g_file_load_bytes(file, NULL, NULL, NULL);
+    if (file_bytes == NULL)
+    {
+      g_print("bytes null\n");
+      return G_SOURCE_REMOVE;
+    }
+    size_t data_size = 0;
+    char *pointer = g_bytes_get_data(file_bytes, &data_size);
+    if (pointer == NULL)
+    {
+      g_print("pointer null\n");
+      return G_SOURCE_REMOVE;
+    }
+    signal_params *params = init_signal_params();
+    find_scopes(pointer, data_size, params);
+    params->signals = params->signals->next;
+    while (params->signals != NULL)
+    {
+      if(params->signals->value->type<3)
+      {
+        //Simple types
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create(NULL, (gpointer)sig_data);
+      }
+      else
+      {
+        sig_info *sig_data = params->signals->value;
+        sig_data->id = global_id;
+        node_insert_end(nodes, sig_data);
+        row_create_composite(NULL, (gpointer)sig_data);
+      }
+      params->signals = params->signals->next;
+    }
+    node_free(params->signals);
+    free(params);
+    g_object_unref(file);
+    free(pointer);
+    *load = 1;
+    return G_SOURCE_REMOVE;
+  }
+  return G_SOURCE_REMOVE;
+}
+
+gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button)
+{
+  write_to_triton(nodes);
+  return G_SOURCE_REMOVE;
+}
