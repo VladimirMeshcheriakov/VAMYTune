@@ -1,1 +1,0 @@
-note_state_utils/note_state_utils.o: note_state_utils/note_state_utils.c

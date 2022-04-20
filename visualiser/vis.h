@@ -4,8 +4,8 @@
 #include "../midi_interface_management/midi_management.h"
 #include "../signals/signals.h"
 #include <SDL2/SDL.h>
-#include "final_signal_production/final_signal_production.h"
 #include "load_save_triton/load_save_triton.h"
+#include "signal_creator/signal_creator_node_adder/list_node_adder.h"
 
 #define N_THREADS 1
 

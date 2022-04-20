@@ -1,6 +1,20 @@
 #include "vis.h"
 
 GMainContext *context;
+char global_file_name[] = "visualiser/glade_signals/signal.glade";
+char global_file_name_components[] = "visualiser/glade_signals/signal_components.glade";
+
+// The nodes of the different signals
+node *nodes;
+
+// The current highest id
+int global_id = 0;
+
+// The list in which the widgets are stored
+GtkListBox *list;
+
+// The global frequency controller
+float global_freq = 0.0;
 
 // Struct to manage follow up lifting of parameters
 typedef struct
@@ -9,341 +23,8 @@ typedef struct
   vis_data *data;
 } GtkMultipleScales;
 
-// Struct to pass node id and the param to modify
-typedef struct id_and_param
-{
-  int *id;
-  int param;
-} id_and_param;
-
-id_and_param *create_id_with_param(int *id, int param)
-{
-  id_and_param *out_param = malloc(sizeof(id_and_param));
-  out_param->id = id;
-  out_param->param = param;
-  return out_param;
-}
-
-typedef struct all_params_and_id
-{
-  struct id_and_param *amp;
-  struct id_and_param *freq;
-  struct id_and_param *composite;
-} all_params_and_id;
-
-all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite)
-{
-  all_params_and_id *all_params = malloc(sizeof(all_params_and_id));
-  all_params->amp = amp;
-  all_params->freq = freq;
-  all_params->composite = composite;
-  return all_params;
-}
-
-all_params_and_id *prepare_all_params(int *id)
-{
-  id_and_param *id_amp = create_id_with_param(id, 0);
-  id_and_param *id_freq = create_id_with_param(id, 1);
-  id_and_param *id_composite = create_id_with_param(id, 2);
-  all_params_and_id *all_params = init_all_params_id(id_amp, id_freq, id_composite);
-  return all_params;
-}
-
-void free_all_params(all_params_and_id *all_params)
-{
-  free(all_params->amp);
-  free(all_params->freq);
-  free(all_params->composite);
-  free(all_params);
-}
-
-char *global_file_data;
-size_t data_length;
-char global_file_name[] = "visualiser/glade_signals/signal.glade";
-char global_file_name_components[] = "visualiser/glade_signals/signal_components.glade";
-// The nodes of the different signals
-node *nodes;
-// The current highest id
-int global_id = 0;
-// The list in which the widgets are stored
-GtkListBox *list;
-// The global frequency controller
-float global_freq = 0.0;
-
-/*
-The functions that are called on change of a scale or a button
-*/
-
-void affect_new(GtkWidget *a_scale, float *old_val)
-{
-  float new_val = gtk_range_get_value(GTK_RANGE(a_scale));
-  *old_val = new_val;
-}
-gboolean on_scale_change_global_freq(GtkWidget *a_scale)
-{
-  float new_freq = gtk_range_get_value(GTK_RANGE(a_scale));
-  global_freq = new_freq;
-  return G_SOURCE_REMOVE;
-}
-
-gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
-{
-  id_and_param *id_param = (id_and_param *)user_data;
-  printf("id: %d\n", *id_param->id);
-  node *id_node = node_get_at(nodes, *id_param->id);
-  sig_info *sine_data = id_node->value;
-  float *param;
-  switch (id_param->param)
-  {
-  case 0:
-    param = &(sine_data->amp);
-    break;
-  case 1:
-    param = &(sine_data->freq);
-    break;
-  default:
-    param = &(sine_data->form);
-    break;
-  }
-  affect_new(a_scale, param);
-  return G_SOURCE_REMOVE;
-}
-gboolean on_delete_node_params(GtkWidget *a_button, gpointer user_data)
-{
-  all_params_and_id *all_params = (all_params_and_id *)user_data;
-  int id = *all_params->amp->id;
-
-  GtkListBoxRow *to_delete = gtk_list_box_get_row_at_index(list, id);
-
-  gtk_container_remove(GTK_CONTAINER(list), GTK_WIDGET(to_delete));
-
-  node_lower_id(nodes, id);
-  free_all_params(all_params);
-  // node_print(nodes);
-
-  global_id -= 1;
-
-  return G_SOURCE_REMOVE;
-}
-
-gboolean on_toggle(GtkWidget *a_toggle_button, gpointer user_data)
-{
-  int *id = (int *)user_data;
-  node *id_node = node_get_at(nodes, *id);
-  sig_info *sine_data = id_node->value;
-  gboolean state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a_toggle_button));
-  sine_data->mute = state ? 1 : 0;
-  return G_SOURCE_REMOVE;
-}
-
-/*
-The functions that draw the signal
-*/
-void set_up_axes(GdkWindow *window, GdkRectangle *da, cairo_t *cr, gdouble *clip_x1, gdouble *clip_y1, gdouble *clip_x2, gdouble *clip_y2, gdouble *dx, gdouble *dy, int zoom_x, int zoom_y)
-{
-
-  /* Determine GtkDrawingArea dimensions */
-  gdk_window_get_geometry(window, &da->x, &da->y, &da->width, &da->height);
-  /* Draw on a black background */
-  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-  cairo_paint(cr);
-
-  /* Change the transformation matrix */
-  // Put the origin of the graph into the center of the image
-  cairo_translate(cr, da->width / 2, da->height / 2);
-  cairo_scale(cr, zoom_x, -zoom_y);
-  /* Determine the data points to calculate (ie. those in the clipping zone */
-  cairo_device_to_user_distance(cr, dx, dy);
-  cairo_clip_extents(cr, clip_x1, clip_y1, clip_x2, clip_y2);
-  cairo_set_line_width(cr, *dx);
-  /* Draws x and y axis */
-  cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
-  cairo_move_to(cr, *clip_x1, 0.0);
-  cairo_line_to(cr, *clip_x2, 0.0);
-  cairo_move_to(cr, 0.0, *clip_y1);
-  cairo_line_to(cr, 0.0, *clip_y2);
-  cairo_stroke(cr);
-}
-
-// Dynamically draws the signal
-static gboolean
-on_draw_created_or_full_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
-{
-  int *id = (int *)user_data;
-  float mult = 2.0;
-  node *id_node;
-  sig_info *vs;
-  int zoom_x = 30;
-  int zoom_y = 100;
-  GdkRectangle da;            /* GtkDrawingArea size */
-  gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
-  GdkWindow *window = gtk_widget_get_window(widget);
-  int drawing_area_width = gtk_widget_get_allocated_width(widget);
-  int drawing_area_height = gtk_widget_get_allocated_height(widget);
-  set_up_axes(window, &da, cr, &clip_x1, &clip_x2, &clip_y1, &clip_y2, &dx, &dy, zoom_x, zoom_y);
-  float he = 0;
-  if (*id != -1)
-  {
-    mult = 1.0;
-    id_node = node_get_at(nodes, *id);
-    vs = id_node->value;
-  }
-  for (i = clip_x1; i < -clip_x1; i += fabs(clip_x1) * 2 / 512)
-  {
-
-    double time = (i + fabs(clip_x1)) / 44100.0;
-    if (*id != -1)
-    {
-      he = instance_signal(0.5, vs, time, global_freq);
-    }
-    else
-    {
-      he = global_signal(0.5, time, global_freq);
-    }
-    cairo_line_to(cr, i, mult * he);
-  }
-  cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
-  cairo_stroke(cr);
-  gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
-  return G_SOURCE_REMOVE;
-}
-
-sig_info *create_and_append_null_sig_info(int *type)
-{
-  sig_info *sig_data = init_null_struct();
-  sig_data->type = *type;
-  sig_data->id = global_id;
-  node_insert_end(nodes, sig_data);
-  return sig_data;
-}
-
-void row_create(GtkWidget *button, gpointer userdata)
-{
-  sig_info *sig_data = (sig_info *)userdata;
-  print_sine_info(sig_data);
-  GtkBuilder *builder = gtk_builder_new();
-  GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, global_file_name, &error) == 0)
-  {
-    g_printerr("Error loading file: %s\n", error->message);
-    g_clear_error(&error);
-  }
-
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "main_box"));
-  GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sig_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sig_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sig_freq"));
-  GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-  GtkLabel *name_label = GTK_LABEL(gtk_builder_get_object(builder, "main_label"));
-
-  switch (sig_data->type)
-  {
-  case 0:
-    gtk_label_set_text(name_label, "Sine");
-    break;
-  case 1:
-    gtk_label_set_text(name_label, "Triangle");
-    break;
-  case 2:
-    gtk_label_set_text(name_label, "Saw");
-    break;
-  }
-
-  // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-  gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-
-  all_params_and_id *all_params = prepare_all_params(&sig_data->id);
-
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node_params), (gpointer)all_params);
-  g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_or_full_signal), (gpointer)&sig_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->amp);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->freq);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sig_data->id);
-  global_id += 1;
-
-  gtk_range_set_value(GTK_RANGE(amp), sig_data->amp);
-  gtk_range_set_value(GTK_RANGE(freq), sig_data->freq);
-
-  gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(sin_da));
-}
-
-void row_create_composite(GtkWidget *button, gpointer userdata)
-{
-  sig_info *sig_data = (sig_info *)userdata;
-  GtkBuilder *builder = gtk_builder_new();
-  GError *error = NULL;
-  if (gtk_builder_add_from_file(builder, global_file_name_components, &error) == 0)
-  {
-    g_printerr("Error loading file: %s\n", error->message);
-    g_clear_error(&error);
-  }
-
-  GtkBox *sine_box = GTK_BOX(gtk_builder_get_object(builder, "main_box"));
-  GtkButton *delete_button = GTK_BUTTON(gtk_builder_get_object(builder, "delete"));
-  GtkDrawingArea *sin_da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "sig_da"));
-  GtkScale *amp = GTK_SCALE(gtk_builder_get_object(builder, "sig_amp"));
-  GtkScale *freq = GTK_SCALE(gtk_builder_get_object(builder, "sig_freq"));
-  GtkScale *components = GTK_SCALE(gtk_builder_get_object(builder, "sig_components"));
-  GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
-  GtkLabel *name_label = GTK_LABEL(gtk_builder_get_object(builder, "main_label"));
-  GtkAdjustment *adj_format = GTK_ADJUSTMENT(gtk_builder_get_object(builder, "adj3"));
-
-  switch (sig_data->type)
-  {
-  case 3:
-    gtk_label_set_text(name_label, "Saw Composite");
-    break;
-  case 4:
-    gtk_label_set_text(name_label, "Square");
-    // Change the adjustment parameter
-    gtk_adjustment_configure(adj_format, 0.0, -1.0, 1.0, 0.01, 10, 0);
-    gtk_scale_set_digits(components, 2);
-    break;
-  }
-
-  // Append the row to the list, the last parameter must be at -1 to allow to append at the end
-  gtk_list_box_insert(list, GTK_WIDGET(sine_box), -1);
-  all_params_and_id *all_params = prepare_all_params(&sig_data->id);
-
-  g_signal_connect(G_OBJECT(delete_button), "clicked", G_CALLBACK(on_delete_node_params), (gpointer)all_params);
-  g_signal_connect(G_OBJECT(sin_da), "draw", G_CALLBACK(on_draw_created_or_full_signal), (gpointer)&sig_data->id);
-  g_signal_connect(G_OBJECT(amp), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->amp);
-  g_signal_connect(G_OBJECT(freq), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->freq);
-  g_signal_connect(G_OBJECT(components), "value_changed", G_CALLBACK(on_scale_change_param), (gpointer)all_params->composite);
-  g_signal_connect(G_OBJECT(mute), "toggled", G_CALLBACK(on_toggle), (gpointer)&sig_data->id);
-  global_id += 1;
-
-  gtk_range_set_value(GTK_RANGE(amp), sig_data->amp);
-  gtk_range_set_value(GTK_RANGE(freq), sig_data->freq);
-  gtk_range_set_value(GTK_RANGE(components), sig_data->form);
-
-  gtk_widget_show_all(GTK_WIDGET(list));
-  gtk_widget_show_all(GTK_WIDGET(sin_da));
-}
-
-static gboolean
-init_and_create_row(GtkWidget *button, gpointer userdata)
-{
-  int *type = (int *)userdata;
-  sig_info *sig_data = create_and_append_null_sig_info(type);
-  row_create(button, sig_data);
-  return G_SOURCE_REMOVE;
-}
-
-static gboolean
-init_and_create_row_composite(GtkWidget *button, gpointer userdata)
-{
-  int *type = (int *)userdata;
-  sig_info *sig_data = create_and_append_null_sig_info(type);
-  row_create_composite(button, sig_data);
-  return G_SOURCE_REMOVE;
-}
-
 // Stops the main thread, quits the gtk
-void on_destroy(GtkWidget *Widget, gpointer user_data)
+void on_destroy(__attribute_maybe_unused__  GtkWidget *Widget, gpointer user_data)
 {
   int *running = (int *)user_data;
   *running = 0;
@@ -371,7 +52,7 @@ on_y(GtkWidget *a_spinner, gpointer user_data)
 }
 
 // Key_change
-static gboolean key_released(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+static gboolean key_released(__attribute_maybe_unused__  GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
   ud *data = (ud *)user_data;
   if (event->keyval == GDK_KEY_r)
@@ -397,7 +78,7 @@ static gboolean key_released(GtkWidget *widget, GdkEventKey *event, gpointer use
 
 // Toggles the activation
 static gboolean
-on_activate(GtkWidget *a_check, gpointer user_data)
+on_activate(__attribute_maybe_unused__  GtkWidget *a_check, gpointer user_data)
 {
   int *old_state = (int *)user_data;
   // Flip state
@@ -524,29 +205,33 @@ on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
+/*
+
+
+
+Filters Drawing
+
+*/
+
 // Dynamically draws the harmonics
 static gboolean
 on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
   vis_data *vs = (vis_data *)user_data;
   float *us = vs->harmonics_sample;
-  int zoom_x = vs->x_zoom;
-  int zoom_y = vs->y_zoom;
 
-  GdkRectangle da;            /* GtkDrawingArea size */
-  gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+  GdkRectangle da_parameters;            /* GtkDrawingArea size */
+  double dx = 2.0, dy = 2.0; /* Pixels between each point */
+  double i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
 
   GdkWindow *window = gtk_widget_get_window(widget);
-  int drawing_area_width = gtk_widget_get_allocated_width(widget);
-  int drawing_area_height = gtk_widget_get_allocated_height(widget);
 
   /* Determine GtkDrawingArea dimensions */
   gdk_window_get_geometry(window,
-                          &da.x,
-                          &da.y,
-                          &da.width,
-                          &da.height);
+                          &da_parameters.x,
+                          &da_parameters.y,
+                          &da_parameters.width,
+                          &da_parameters.height);
 
   /* Draw on a black background */
   cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
@@ -554,43 +239,39 @@ on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   /* Change the transformation matrix */
   // Put the origin of the graph into the center of the image
-  cairo_translate(cr, 0, da.height);
-  cairo_scale(cr, zoom_x, -zoom_y);
-
+  cairo_translate(cr, da_parameters.width / 2, da_parameters.height);
+  cairo_scale(cr, 100, -100);
   /* Determine the data points to calculate (ie. those in the clipping zone */
   cairo_device_to_user_distance(cr, &dx, &dy);
   cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
   cairo_set_line_width(cr, dx);
 
-  /* Draws x and y axis */
   cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
   cairo_move_to(cr, clip_x1, 0.0);
   cairo_line_to(cr, clip_x2, 0.0);
-  cairo_move_to(cr, 0.0, clip_y1);
-  cairo_line_to(cr, 0.0, clip_y2);
   cairo_stroke(cr);
 
-  // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, (clip_x2/(double)1024));
-  //  printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
+  //printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, ((fabs(clip_x1) - fabs(clip_x2) ) / (double)1024));
+  // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
   /* Link each data point */
   int cpt = 0;
-  for (i = clip_x1; i < clip_x2; i += (clip_x2 / (double)1024))
+  
+  for (i = clip_x1; i < clip_x2; i += (clip_x2 / (double)512))
   {
     if (cpt < 1024)
     {
       float he = us[cpt];
-      // printf("double %f\n",i);
       cairo_line_to(cr, i, he * clip_y2);
     }
     cpt += 1;
   }
-
+  //printf("cpr:%d\n",cpt);
   /* Draw the curve */
   cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
   cairo_stroke(cr);
   // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
 
-  gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
+  gtk_widget_queue_draw_area(widget, 0, 0, da_parameters.width,da_parameters.height);
 
   return G_SOURCE_REMOVE;
 }
@@ -606,20 +287,18 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int zoom_x = vs->x_zoom;
   int zoom_y = vs->y_zoom;
 
-  GdkRectangle da;            /* GtkDrawingArea size */
+  GdkRectangle da_parameters;            /* GtkDrawingArea size */
   gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
   gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
 
   GdkWindow *window = gtk_widget_get_window(widget);
-  int drawing_area_width = gtk_widget_get_allocated_width(widget);
-  int drawing_area_height = gtk_widget_get_allocated_height(widget);
 
   /* Determine GtkDrawingArea dimensions */
   gdk_window_get_geometry(window,
-                          &da.x,
-                          &da.y,
-                          &da.width,
-                          &da.height);
+                          &da_parameters.x,
+                          &da_parameters.y,
+                          &da_parameters.width,
+                          &da_parameters.height);
 
   /* Draw on a black background */
   cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
@@ -627,7 +306,7 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   /* Change the transformation matrix */
   // Put the origin of the graph into the center of the image
-  cairo_translate(cr, da.width / 2, da.height / 2);
+  cairo_translate(cr, da_parameters.width / 2, da_parameters.height / 2);
   cairo_scale(cr, zoom_x, -zoom_y);
 
   /* Determine the data points to calculate (ie. those in the clipping zone */
@@ -676,10 +355,12 @@ on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   cairo_set_source_rgba(cr, 0.2, 0.6, 0.6, 0.7);
   cairo_stroke(cr);
 
-  gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
+  gtk_widget_queue_draw_area(widget, 0, 0,da_parameters.width,da_parameters.height) ;
 
   return G_SOURCE_REMOVE;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////:
 
 static gboolean
 update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
@@ -693,17 +374,13 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
       g_print("uri null\n");
       return G_SOURCE_REMOVE;
     }
-    else
-    {
-      g_print("%s\n", uri);
-    }
+    g_print("%s\n", uri);
     GFile *file = g_file_new_for_uri(uri);
     if (file == NULL)
     {
       g_print("file null\n");
       return G_SOURCE_REMOVE;
     }
-
     GFileInfo *info;
     info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
     if (info == NULL)
@@ -711,7 +388,6 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
       g_print("info null\n");
       return G_SOURCE_REMOVE;
     }
-
     GBytes *file_bytes = g_file_load_bytes(file, NULL, NULL, NULL);
     if (file_bytes == NULL)
     {
@@ -725,181 +401,44 @@ update_preview_cb(GtkFileChooser *file_chooser, gpointer data)
       g_print("pointer null\n");
       return G_SOURCE_REMOVE;
     }
-    else
+    signal_params *params = init_signal_params();
+    find_scopes(pointer, data_size, params);
+    params->signals = params->signals->next;
+    while (params->signals != NULL)
     {
-      signal_params *params = init_signal_params();
-      find_scopes(pointer, data_size, params);
-
-      while (params->signals->next != NULL)
+      if(params->signals->value->type<3)
       {
-        switch (params->signals->value->type)
-        {
-        case 0:
-        {
-          sig_info *sig_data = params->signals->value;
-          sig_data->id = global_id;
-          node_insert_end(nodes, sig_data);
-          row_create(NULL, (gpointer)sig_data);
-          break;
-        }
-        case 1:
-        {
-          sig_info *sig_data = params->signals->value;
-          sig_data->id = global_id;
-          node_insert_end(nodes, sig_data);
-          row_create(NULL, (gpointer)sig_data);
-          break;
-        }
-        case 2:
-        {
-          sig_info *sig_data = params->signals->value;
-          sig_data->id = global_id;
-          node_insert_end(nodes, sig_data);
-          row_create(NULL, (gpointer)sig_data);
-          break;
-        }
-        case 3:
-        {
-          sig_info *sig_data = params->signals->value;
-          sig_data->id = global_id;
-          node_insert_end(nodes, sig_data);
-          row_create_composite(NULL, (gpointer)sig_data);
-          break;
-        }
-        case 4:
-        {
-          sig_info *sig_data = params->signals->value;
-          sig_data->id = global_id;
-          node_insert_end(nodes, sig_data);
-          row_create_composite(NULL, (gpointer)sig_data);
-          break;
-        }
-        }
-        params->signals = params->signals->next;
-      }
-      switch (params->signals->value->type)
-      {
-      case 0:
-      {
+        //Simple types
         sig_info *sig_data = params->signals->value;
         sig_data->id = global_id;
         node_insert_end(nodes, sig_data);
         row_create(NULL, (gpointer)sig_data);
-        break;
       }
-      case 1:
-      {
-        sig_info *sig_data = params->signals->value;
-        sig_data->id = global_id;
-        node_insert_end(nodes, sig_data);
-        row_create(NULL, (gpointer)sig_data);
-        break;
-      }
-      case 2:
-      {
-        sig_info *sig_data = params->signals->value;
-        sig_data->id = global_id;
-        node_insert_end(nodes, sig_data);
-        row_create(NULL, (gpointer)sig_data);
-        break;
-      }
-      case 3:
+      else
       {
         sig_info *sig_data = params->signals->value;
         sig_data->id = global_id;
         node_insert_end(nodes, sig_data);
         row_create_composite(NULL, (gpointer)sig_data);
-        break;
       }
-      case 4:
-      {
-        sig_info *sig_data = params->signals->value;
-        sig_data->id = global_id;
-        node_insert_end(nodes, sig_data);
-        row_create_composite(NULL, (gpointer)sig_data);
-        break;
-      }
-      }
-      node_free(params->signals);
-      free(params);
-      g_object_unref(file);
-      free(pointer);
-      *load = 1;
-      return G_SOURCE_REMOVE;
+      params->signals = params->signals->next;
     }
-  }
-  else
-  {
+    node_free(params->signals);
+    free(params);
+    g_object_unref(file);
+    free(pointer);
+    *load = 1;
     return G_SOURCE_REMOVE;
   }
+  return G_SOURCE_REMOVE;
 }
 
-static gboolean on_save_state(GtkButton *a_button)
+static gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button)
 {
   write_to_triton(nodes);
   return G_SOURCE_REMOVE;
-  ;
 }
 
-// Main loop of the app
-void run_app(vis_data *my_data)
-{
-  int argc = my_data->argc;
-  char **argv = my_data->argv;
-  ud *data = my_data->data;
-  Uint8 *state = my_data->state;
-
-  data->fout = open_WAV("Bach.wav");
-  data->fout_size = findSize("Bach.wav");
-
-  struct pollfd *pfds;
-  int npfds;
-
-  init_seq();
-
-  if (parse_input(argc, argv) != -1)
-  {
-    printf("Parsing error\n");
-  }
-
-  snd_seq_t *seq = create_port();
-  int port_count = connect_ports(seq);
-
-  if (port_count > 0)
-    printf("Waiting for data.");
-  else
-    printf("Waiting for data at port %d:0.",
-           snd_seq_client_id(seq));
-  printf(" Press Ctrl+C to end.\n");
-  printf("Source  Event                  Ch  Data\n");
-
-  npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
-  pfds = alloca(sizeof(*pfds) * npfds);
-
-  while (my_data->stop_thread)
-  {
-    snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
-    int p = poll(pfds, npfds, 20);
-    if (p == 0)
-    {
-      note_state(state, data);
-      init_piano_keys(state, data);
-    }
-    else
-    {
-      snd_seq_event_t *event_;
-      snd_seq_event_input(seq, &event_);
-      if (event_)
-      {
-        dump_event(event_, state);
-        note_state(state, data);
-        init_piano_keys(state, data);
-      }
-    }
-    update_effects(my_data);
-    apply_filter_to_sample(my_data, 1024);
-  }
-}
 
 static gboolean
 on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
@@ -974,6 +513,67 @@ on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
+// Main loop of the app
+void run_app(vis_data *my_data)
+{
+  int argc = my_data->argc;
+  char **argv = my_data->argv;
+  ud *data = my_data->data;
+  Uint8 *state = my_data->state;
+
+  data->fout = open_WAV("Bach.wav");
+  data->fout_size = findSize("Bach.wav");
+
+  struct pollfd *pfds;
+  int npfds;
+
+  init_seq();
+
+  if (parse_input(argc, argv) != -1)
+  {
+    printf("Parsing error\n");
+  }
+
+  snd_seq_t *seq = create_port();
+  int port_count = connect_ports(seq);
+
+  if (port_count > 0)
+    printf("Waiting for data.");
+  else
+    printf("Waiting for data at port %d:0.",
+           snd_seq_client_id(seq));
+  printf(" Press Ctrl+C to end.\n");
+  printf("Source  Event                  Ch  Data\n");
+
+  npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
+  pfds = alloca(sizeof(*pfds) * npfds);
+
+  while (my_data->stop_thread)
+  {
+    snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
+    int p = poll(pfds, npfds, 20);
+    if (p == 0)
+    {
+      note_state(state, data);
+      init_piano_keys(state, data);
+    }
+    else
+    {
+      snd_seq_event_t *event_;
+      snd_seq_event_input(seq, &event_);
+      if (event_)
+      {
+        dump_event(event_, state);
+        note_state(state, data);
+        init_piano_keys(state, data);
+      }
+    }
+    //The graphic calculus slows the programm!!!
+    apply_filter_to_sample(my_data, 1024);
+  }
+}
+
+
 static gpointer
 thread_func(gpointer user_data)
 {
@@ -987,9 +587,23 @@ thread_func(gpointer user_data)
   return NULL;
 }
 
+static gpointer
+thread_update(gpointer user_data)
+{
+  vis_data *vs = (vis_data *)user_data;
+  g_print("Starting thread %d\n", 1);
+  while (vs->stop_thread)
+  {
+    update_effects(vs);
+  }
+  g_print("Ending thread %d\n", 1);
+  return NULL;
+}
+
+
 int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
 {
-  GThread *thread[N_THREADS];
+  GThread *thread[2];
   int loaded = 0;
   gtk_init(&argc, &argv);
   nodes = node_build_sentinel();
@@ -1147,15 +761,16 @@ int gtk_run_zbi(vis_data *vis_d, int argc, char **argv)
 
   context = g_main_context_default();
 
-  for (int n = 0; n < N_THREADS; ++n)
-    thread[n] = g_thread_new(NULL, thread_func, vis_d);
+
+  thread[0] = g_thread_new(NULL, thread_func, vis_d);
+  thread[1] = g_thread_new(NULL, thread_update, vis_d);
 
   gtk_widget_show_all(GTK_WIDGET(window));
 
   gtk_main();
 
-  for (int n = 0; n < N_THREADS; ++n)
-    g_thread_join(thread[n]);
+  g_thread_join(thread[0]);
+  g_thread_join(thread[1]);
 
   free(band_cut_data_low);
   free(band_cut_data_high);
