@@ -18,6 +18,8 @@ typedef struct sig_info
   float form;
   float amp;
   float freq;
+  float phase;
+  float inverse;
   int mute;
 }sig_info;
 

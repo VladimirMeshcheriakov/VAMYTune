@@ -17,7 +17,7 @@
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkBox" id="saw_box">
+  <object class="GtkBox" id="main_box">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="orientation">vertical</property>
@@ -53,7 +53,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel">
+          <object class="GtkLabel" id="main_label">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="label" translatable="yes">Saw Composite
@@ -102,7 +102,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="saw_amp">
+                  <object class="GtkScale" id="sig_amp">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj1</property>
@@ -140,7 +140,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="saw_freq">
+                  <object class="GtkScale" id="sig_freq">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj2</property>
@@ -177,7 +177,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScale" id="saw_components">
+                  <object class="GtkScale" id="sig_components">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj3</property>
@@ -197,6 +197,44 @@
                 <property name="position">2</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Phase</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkScale" id="sig_phase">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="adjustment">adj3</property>
+                    <property name="round-digits">0</property>
+                    <property name="digits">0</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -205,7 +243,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkDrawingArea" id="saw_da">
+          <object class="GtkDrawingArea" id="sig_da">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
           </object>
@@ -222,5 +260,10 @@
         <property name="position">1</property>
       </packing>
     </child>
+  </object>
+  <object class="GtkAdjustment" id="adj4">
+    <property name="upper">6.28318537195</property>
+    <property name="step-increment">0.01</property>
+    <property name="page-increment">10</property>
   </object>
 </interface>

@@ -1,6 +1,5 @@
 #include "signal_creator_utils.h"
 
-
 id_and_param *create_id_with_param(int *id, int param)
 {
   id_and_param *out_param = malloc(sizeof(id_and_param));
@@ -9,12 +8,14 @@ id_and_param *create_id_with_param(int *id, int param)
   return out_param;
 }
 
-all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite)
+all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite, id_and_param *phase, id_and_param *inverse)
 {
   all_params_and_id *all_params = malloc(sizeof(all_params_and_id));
   all_params->amp = amp;
   all_params->freq = freq;
   all_params->composite = composite;
+  all_params->phase = phase;
+  all_params->inverse = inverse;
   return all_params;
 }
 
@@ -23,7 +24,9 @@ all_params_and_id *prepare_all_params(int *id)
   id_and_param *id_amp = create_id_with_param(id, 0);
   id_and_param *id_freq = create_id_with_param(id, 1);
   id_and_param *id_composite = create_id_with_param(id, 2);
-  all_params_and_id *all_params = init_all_params_id(id_amp, id_freq, id_composite);
+  id_and_param *id_phase = create_id_with_param(id, 3);
+  id_and_param *id_inverse = create_id_with_param(id, 4);
+  all_params_and_id *all_params = init_all_params_id(id_amp, id_freq, id_composite, id_phase, id_inverse);
   return all_params;
 }
 
@@ -32,6 +35,7 @@ void free_all_params(all_params_and_id *all_params)
   free(all_params->amp);
   free(all_params->freq);
   free(all_params->composite);
+  free(all_params->phase);
   free(all_params);
 }
 
@@ -39,6 +43,7 @@ void affect_new(GtkWidget *a_scale, float *old_val)
 {
   float new_val = gtk_range_get_value(GTK_RANGE(a_scale));
   *old_val = new_val;
+  g_print("%f\n", new_val);
 }
 
 gboolean on_scale_change_global_freq(GtkWidget *a_scale)
@@ -51,7 +56,7 @@ gboolean on_scale_change_global_freq(GtkWidget *a_scale)
 gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
 {
   id_and_param *id_param = (id_and_param *)user_data;
-  //printf("id: %d\n", *id_param->id);
+  // printf("id: %d\n", *id_param->id);
   node *id_node = node_get_at(nodes, *id_param->id);
   sig_info *sine_data = id_node->value;
   float *param;
@@ -63,11 +68,20 @@ gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
   case 1:
     param = &(sine_data->freq);
     break;
-  default:
+  case 2:
     param = &(sine_data->form);
     break;
+  case 3:
+    param = &(sine_data->phase);
+    break;
+  default:
+    param = &(sine_data->inverse);
+    break;
   }
-  affect_new(a_scale, param);
+  if (param != NULL)
+  {
+    affect_new(a_scale, param);
+  }
   return G_SOURCE_REMOVE;
 }
 

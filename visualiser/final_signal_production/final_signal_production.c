@@ -6,19 +6,19 @@ float instance_signal(float volume, sig_info *vs, double time, float freq)
   switch (vs->type)
   {
   case 0:
-    he += vs->amp * sine(volume, freq * vs->freq, time);
+    he += vs->amp * sine(volume, freq * vs->freq, time, vs->phase);
     break;
   case 1:
-    he += vs->amp * triangle(volume, freq * vs->freq, time);
+    he += vs->amp * triangle(volume, freq * vs->freq, time, vs->phase);
     break;
   case 2:
-    he += vs->amp * saw(volume, freq * vs->freq, time);
+    he += vs->amp * saw(volume, freq * vs->freq, time, vs->phase,vs->inverse);
     break;
   case 3:
-    he += vs->amp * saw2(volume, freq * vs->freq, time, vs->form + 1);
+    he += vs->amp * saw2(volume, freq * vs->freq, time, vs->form + 1,vs->phase );
     break;
   case 4:
-    he += vs->amp * square(volume, freq * vs->freq, time, vs->form);
+    he += vs->amp * square(volume, freq * vs->freq, time, vs->form,vs->phase);
     break;
   }
   return he;

@@ -21,9 +21,7 @@ float create_signal(float volume, double time, float freq)
      time);
      */
 
-    return tans(volume,freq,time) +  0.7 * saw2(volume, freq*2.0, time,10)+ 0.5 * triangle(volume,freq*3.0,time) +0.4 *
-     triangle(volume, freq*4.0, time)  +  0.3 * square(volume, freq*5.0,
-     time,0.34);
+    return tans(volume,freq,time);
 }
 
 // Functions that produces the octave of a signal

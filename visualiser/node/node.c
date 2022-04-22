@@ -39,8 +39,10 @@ sig_info * init_null_struct()
     sine_data->amp = 0;
     sine_data->freq = 0;
     sine_data->form = 0;
+    sine_data->phase = 0;
     sine_data->id = -1;
     sine_data->mute = 0;
+    sine_data->inverse = 0;
     return sine_data;
 }
 
@@ -49,7 +51,7 @@ void print_sine_info(sig_info * sine_data)
     switch (sine_data->type)
     {
     case 0:
-        printf("{ Sine id %d , amp: %f, freq: %f\n",sine_data->id,sine_data->amp,sine_data->freq);
+        printf("{ Sine id %d , amp: %f, freq: %f, phase %f\n",sine_data->id,sine_data->amp,sine_data->freq, sine_data->phase);
         break;
     case 1:
         printf("{ Triangle id %d ,  amp: %f, freq: %f\n",sine_data->id,sine_data->amp,sine_data->freq);

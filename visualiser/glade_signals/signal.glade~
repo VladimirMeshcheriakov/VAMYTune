@@ -182,7 +182,7 @@
                     <property name="can-focus">True</property>
                     <property name="adjustment">adj3</property>
                     <property name="round-digits">4</property>
-                    <property name="digits">4</property>
+                    <property name="digits">2</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

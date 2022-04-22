@@ -28,11 +28,11 @@ char *create_string_from_signal(sig_info *info)
   char *buffer = calloc(100, sizeof(char));
   if (info->type < 3)
   {
-    sprintf(buffer, "[%d;,\n%.3f;,\n%.3f;,\n],\n", info->type, info->amp * 100.0, info->freq * 100.0);
+    sprintf(buffer, "[%d;,\n%.3f;,\n%.3f;,\n%.3f;,\n],\n", info->type, info->amp * 100.0, info->freq * 100.0, info->phase * 100);
   }
   else
   {
-    sprintf(buffer, "[%d;,\n%.3f;,\n%.3f;,\n%.3f;,\n],\n", info->type, info->amp * 100.0, info->freq * 100.0, info->form * 100);
+    sprintf(buffer, "[%d;,\n%.3f;,\n%.3f;,\n%.3f;,\n%.3f;,\n],\n", info->type, info->amp * 100.0, info->freq * 100.0, info->form * 100, info->phase * 100);
   }
   return buffer;
 }
@@ -92,8 +92,21 @@ void find_scopes(char *arr, size_t len, signal_params *params)
                 // printf("Info freq is set to %f \n", test);
                 break;
               case 3:
-                info->form = test;
+                if(info->type < 3)
+                {
+                  info->phase = (test/100.00);
+                }
+                else
+                {
+                  info->form = (test/100.00);
+                }
                 // printf("Info form is set to %f \n", test);
+                break;
+              case 4:
+                info->phase = (test/100.00);
+                break;
+              case 5:
+                info->inverse = (test/100.00);
                 break;
               }
               param_num += 1;

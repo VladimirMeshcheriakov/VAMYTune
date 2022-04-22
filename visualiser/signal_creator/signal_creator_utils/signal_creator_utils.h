@@ -31,9 +31,11 @@ typedef struct all_params_and_id
   struct id_and_param *amp;
   struct id_and_param *freq;
   struct id_and_param *composite;
+  struct id_and_param *phase;
+  struct id_and_param *inverse;
 } all_params_and_id;
 
-all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite);
+all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite, id_and_param *phase, id_and_param *inverse);
 all_params_and_id *prepare_all_params(int *id);
 void free_all_params(all_params_and_id *all_params);
 gboolean on_scale_change_global_freq(GtkWidget *a_scale);
