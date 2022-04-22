@@ -17,6 +17,12 @@ typedef struct
     int record;
     // 1 to set playback, 0 to unset
     int playback;
+    // 1 to set loop, 
+    int loop;
+    // start of the loop
+    double loop_start;
+    //End of loop
+    double loop_end;
 }WavManagement;
 
 //Init a wav management struct instance

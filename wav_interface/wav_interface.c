@@ -2,11 +2,12 @@
 #pragma pack(0)
 
 
+
 /**
  * TODO: Functions to implement
- * ! Fast-forward
- * ! Rewind
  * ! Try to manage all that with double keys, ex: Ctrl+p
+ * ! Create a structure for a file ro only calculate it's size once
+ * ! Allow the loop playback
  */
 
 //Calculates the size of a file in bytes
@@ -31,6 +32,7 @@ uint64_t findSize(const char *file_name)
   
     return res;
 }
+
 // Opens a WAV file
 //DONT FORGET TO CLOSE MANUALLY
 FILE *open_WAV(const char *filename)
@@ -102,12 +104,12 @@ bool record(uint64_t sample_size, float *sound, const char *file_name, const cha
 /*Reads 8 bytes (2 float values) to a sound buffer from the file f_in,
 This function allows to have playback, without destroying the data in the wav file
 */
-void read_from_wav(FILE* f_in, const char *filename, float *sound)
+void read_from_wav(FILE* f_in,  float *sound)
 {
     // If no sound buffer is given or no filename provided, stop execution
-    if (sound == NULL || filename == NULL)
+    if (sound == NULL )
     {
-        printf("ERROR: No filename, or no sound buffer\n");
+        printf("ERROR:No Sound buffer\n");
     }
     size_t file_sound = fread(sound, sizeof(float), 2, f_in);
     //printf("Sound file size is %ld in bytes\n",file_sound);
@@ -117,5 +119,80 @@ void read_from_wav(FILE* f_in, const char *filename, float *sound)
         fclose(f_in);
     }
 }
+
+/*
+Goes to sec in a file if the length of the file does not exceed the timing 
+*/
+//WORKS
+void read_from_sec(FILE * fout,uint64_t file_size, double sec)
+{
+    // Pointer to the file to which we will write
+    file_format_header hdr;
+    // Read the header of the file
+    printf("Total file size is %ld bytes\n",file_size);
+    size_t file_header_read = fread(&hdr, sizeof(file_format_header), 1, fout);
+    if (file_header_read != 1)
+    {
+        printf("ERROR: Uanble to read the WAV header\n");
+        fclose(fout);
+        exit(1);
+    }
+    printf("Header file size is %ld in bytes\n",file_header_read);
+    printf("Size left for sound is %ld bytes\n",file_size - file_header_read);
+
+    size_t new_playback_byte = sec * BYTES_PER_SECOND;
+    if(new_playback_byte > file_size)
+    {
+        printf("You have exceeded the time of the file!");
+        fclose(fout);
+        exit(1);
+    }
+    //Set the read possition to offset
+    fseek(fout,new_playback_byte,SEEK_SET);
+}
+
+/*
+    Opens a file and does a loop playback on it (start to end)
+*/
+void loop_between(const char * filename, double start, double end, float * sound )
+{
+    if(start>end)
+    {
+        printf("Start parameter is larger than end!\n");
+        exit(1);
+    }
+    uint64_t file_size = findSize(filename);
+    // Pointer to the file to which we will write
+    FILE *fout = fopen(filename, "r");
+    file_format_header hdr;
+    // Read the header of the file
+    printf("Total file size is %ld bytes\n",file_size);
+    size_t file_header_read = fread(&hdr, sizeof(file_format_header), 1, fout);
+    if (file_header_read != 1)
+    {
+        printf("ERROR: Uanble to read the WAV header\n");
+        fclose(fout);
+        exit(1);
+    }
+    printf("Header file size is %ld in bytes\n",file_header_read);
+    printf("Size left for sound is %ld bytes\n",file_size - file_header_read);
+
+    size_t new_playback_byte_start = start * BYTES_PER_SECOND;
+    size_t new_playback_byte_end = end * BYTES_PER_SECOND;
+    if(new_playback_byte_end > file_size)
+    {
+        printf("You have exceeded the time of the file!");
+        fclose(fout);
+        exit(1);
+    }
+    //Set the read possition to offset
+    fseek(fout,new_playback_byte_start,SEEK_SET);
+    while(ftell(fout)< new_playback_byte_end)
+    {
+        read_from_wav(fout,sound);
+    }
+    fclose(fout);
+}
+
 
 

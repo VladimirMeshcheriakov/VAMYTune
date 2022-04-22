@@ -1,6 +1,7 @@
 #include "vis.h"
 
 GMainContext *context;
+//File names to add new basic signals
 char global_file_name[] = "visualiser/glade_signals/signal.glade";
 char global_file_name_components[] = "visualiser/glade_signals/signal_components.glade";
 
@@ -16,12 +17,7 @@ GtkListBox *list;
 // The global frequency controller
 float global_freq = 0.0;
 
-// Struct to manage follow up lifting of parameters
-typedef struct
-{
-  GtkScale *lead;
-  vis_data *data;
-} GtkMultipleScales;
+
 
 // Stops the main thread, quits the gtk
 void on_destroy(__attribute_maybe_unused__ GtkWidget *Widget, gpointer user_data)
@@ -53,302 +49,15 @@ static gboolean key_released(__attribute_maybe_unused__ GtkWidget *widget, GdkEv
   {
     data->wav_manager->playback = 0;
   }
+  else if (event->keyval == GDK_KEY_l)
+  {
+    data->wav_manager->loop = 1;
+  }
+  else if (event->keyval == GDK_KEY_m)
+  {
+    data->wav_manager->loop = 0;
+  }
   return GDK_EVENT_PROPAGATE;
-}
-
-// Changes the x zoom
-static gboolean
-on_x(GtkWidget *a_spinner, gpointer user_data)
-{
-  int *x_zoom = (int *)user_data;
-  int x = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-  *x_zoom = x;
-  return G_SOURCE_REMOVE;
-}
-
-// Changes the y zoom
-static gboolean
-on_y(GtkWidget *a_spinner, gpointer user_data)
-{
-  int *y_zoom = (int *)user_data;
-  int y = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(a_spinner));
-  *y_zoom = y;
-  return G_SOURCE_REMOVE;
-}
-
-// Toggles the activation
-gboolean on_activate(__attribute_maybe_unused__ GtkWidget *a_check, gpointer user_data)
-{
-  int *old_state = (int *)user_data;
-  // Flip state
-  int new_state = *old_state ? 0 : 1;
-  *old_state = new_state;
-  return G_SOURCE_REMOVE;
-}
-
-gboolean on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
-{
-  float *current_time = (float *)user_data;
-  float new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(a_spinner));
-  // g_print("%f\n",new_time);
-  *current_time = new_time;
-  return G_SOURCE_REMOVE;
-}
-
-// Scale move (normal)
-gboolean on_scale_change(GtkWidget *a_scale, gpointer user_data)
-{
-  float *old_val = (float *)user_data;
-  float actual_val = gtk_range_get_value(GTK_RANGE(a_scale));
-  *old_val = actual_val;
-  return G_SOURCE_REMOVE;
-}
-
-// Scale move on the low side of the band filters
-gboolean on_scale_band_cut_change_low(GtkWidget *low_scale, gpointer user_data)
-{
-  GtkMultipleScales *data = (GtkMultipleScales *)user_data;
-
-  float *low_cut = &(data->data->band_cut_low);
-  float *high_cut = &(data->data->band_cut_high);
-
-  GtkScale *high = GTK_SCALE(data->lead);
-  GtkScale *low = GTK_SCALE(low_scale);
-
-  gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
-  *low_cut = low_val;
-
-  gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
-  if (high_val < low_val)
-  {
-    *high_cut = low_val;
-    gtk_range_set_value(GTK_RANGE(high), low_val);
-  }
-  return G_SOURCE_REMOVE;
-}
-
-// Scale move on the high side of the band filters
-gboolean on_scale_band_cut_change_high(GtkWidget *high_scale, gpointer user_data)
-{
-  GtkMultipleScales *data = (GtkMultipleScales *)user_data;
-
-  float *low_cut = &(data->data->band_cut_low);
-  float *high_cut = &(data->data->band_cut_high);
-
-  GtkScale *low = GTK_SCALE(data->lead);
-  GtkScale *high = GTK_SCALE(high_scale);
-
-  gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
-
-  gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
-  *high_cut = high_val;
-
-  if (high_val < low_val)
-  {
-    *low_cut = high_val;
-    gtk_range_set_value(GTK_RANGE(low), high_val);
-  }
-  return G_SOURCE_REMOVE;
-}
-
-// Scale move on the low side of the band filters
-gboolean on_scale_band_change_low(GtkWidget *low_scale, gpointer user_data)
-{
-  GtkMultipleScales *data = (GtkMultipleScales *)user_data;
-
-  float *low_cut = &(data->data->band_pass_low);
-  float *high_cut = &(data->data->band_pass_high);
-
-  GtkScale *high = GTK_SCALE(data->lead);
-  GtkScale *low = GTK_SCALE(low_scale);
-
-  gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
-  *low_cut = low_val;
-
-  gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
-  if (high_val < low_val)
-  {
-    *high_cut = low_val;
-    gtk_range_set_value(GTK_RANGE(high), low_val);
-  }
-  return G_SOURCE_REMOVE;
-}
-
-// Scale move on the high side of the band filters
-gboolean on_scale_band_change_high(GtkWidget *high_scale, gpointer user_data)
-{
-  GtkMultipleScales *data = (GtkMultipleScales *)user_data;
-
-  float *low_cut = &(data->data->band_pass_low);
-  float *high_cut = &(data->data->band_pass_high);
-
-  GtkScale *low = GTK_SCALE(data->lead);
-  GtkScale *high = GTK_SCALE(high_scale);
-
-  gdouble low_val = gtk_range_get_value(GTK_RANGE(low));
-
-  gdouble high_val = gtk_range_get_value(GTK_RANGE(high));
-  *high_cut = high_val;
-
-  if (high_val < low_val)
-  {
-    *low_cut = high_val;
-    gtk_range_set_value(GTK_RANGE(low), high_val);
-  }
-  return G_SOURCE_REMOVE;
-}
-
-/*
-
-
-
-Filters Drawing
-
-*/
-
-// Dynamically draws the harmonics
-gboolean on_draw_harmonics(GtkWidget *widget, cairo_t *cr, gpointer user_data)
-{
-  vis_data *vs = (vis_data *)user_data;
-  float *us = vs->harmonics_sample;
-
-  GdkRectangle da_parameters; /* GtkDrawingArea size */
-  double dx = 2.0, dy = 2.0;  /* Pixels between each point */
-  double i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
-
-  GdkWindow *window = gtk_widget_get_window(widget);
-
-  /* Determine GtkDrawingArea dimensions */
-  gdk_window_get_geometry(window,
-                          &da_parameters.x,
-                          &da_parameters.y,
-                          &da_parameters.width,
-                          &da_parameters.height);
-
-  /* Draw on a black background */
-  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-  cairo_paint(cr);
-
-  /* Change the transformation matrix */
-  // Put the origin of the graph into the center of the image
-  cairo_translate(cr, da_parameters.width / 2, da_parameters.height);
-  cairo_scale(cr, 100, -100);
-  /* Determine the data points to calculate (ie. those in the clipping zone */
-  cairo_device_to_user_distance(cr, &dx, &dy);
-  cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
-  cairo_set_line_width(cr, dx);
-
-  cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
-  cairo_move_to(cr, clip_x1, 0.0);
-  cairo_line_to(cr, clip_x2, 0.0);
-  cairo_stroke(cr);
-
-  // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, ((fabs(clip_x1) - fabs(clip_x2) ) / (double)1024));
-  //  printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
-  /* Link each data point */
-  int cpt = 0;
-
-  for (i = clip_x1; i < clip_x2; i += (clip_x2 / (double)512))
-  {
-    if (cpt < 1024)
-    {
-      float he = us[cpt];
-      cairo_line_to(cr, i, he * clip_y2);
-    }
-    cpt += 1;
-  }
-  // printf("cpr:%d\n",cpt);
-  /* Draw the curve */
-  cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
-  cairo_stroke(cr);
-  // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
-
-  gtk_widget_queue_draw_area(widget, 0, 0, da_parameters.width, da_parameters.height);
-
-  return G_SOURCE_REMOVE;
-}
-
-// Dynamically draws the signal
-gboolean on_draw_signal(GtkWidget *widget, cairo_t *cr, gpointer user_data)
-{
-
-  vis_data *vs = (vis_data *)user_data;
-  float *us = vs->sig_sample;
-  float *resp = vs->filtered_sample;
-  int zoom_x = vs->x_zoom;
-  int zoom_y = vs->y_zoom;
-
-  GdkRectangle da_parameters; /* GtkDrawingArea size */
-  gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
-
-  GdkWindow *window = gtk_widget_get_window(widget);
-
-  /* Determine GtkDrawingArea dimensions */
-  gdk_window_get_geometry(window,
-                          &da_parameters.x,
-                          &da_parameters.y,
-                          &da_parameters.width,
-                          &da_parameters.height);
-
-  /* Draw on a black background */
-  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
-  cairo_paint(cr);
-
-  /* Change the transformation matrix */
-  // Put the origin of the graph into the center of the image
-  cairo_translate(cr, da_parameters.width / 2, da_parameters.height / 2);
-  cairo_scale(cr, zoom_x, -zoom_y);
-
-  /* Determine the data points to calculate (ie. those in the clipping zone */
-  cairo_device_to_user_distance(cr, &dx, &dy);
-  cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
-  cairo_set_line_width(cr, dx);
-
-  /* Draws x and y axis */
-  cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
-  cairo_move_to(cr, clip_x1, 0.0);
-  cairo_line_to(cr, clip_x2, 0.0);
-  cairo_move_to(cr, 0.0, clip_y1);
-  cairo_line_to(cr, 0.0, clip_y2);
-  cairo_stroke(cr);
-
-  // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, dx);
-  // printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
-  /* Link each data point */
-  int cpt = 0;
-  for (i = clip_x1; i < clip_x2; i += (clip_x2 / (double)512))
-  {
-    if (cpt < 1024)
-    {
-      float he = us[cpt];
-      // printf("double %f\n",i);
-      cairo_line_to(cr, i, he);
-    }
-    cpt += 1;
-  }
-
-  /* Draw the curve */
-  cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
-  cairo_stroke(cr);
-
-  cpt = 0;
-  for (i = clip_x1; i < clip_x2; i += (clip_x2 / (double)512))
-  {
-    if (cpt < 1024)
-    {
-      float he = resp[cpt];
-      // printf("double %f\n", he);
-      cairo_line_to(cr, i, he);
-    }
-    cpt += 1;
-  }
-  cairo_set_source_rgba(cr, 0.2, 0.6, 0.6, 0.7);
-  cairo_stroke(cr);
-
-  gtk_widget_queue_draw_area(widget, 0, 0, da_parameters.width, da_parameters.height);
-
-  return G_SOURCE_REMOVE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////:
@@ -480,8 +189,9 @@ void run_app(vis_data *my_data)
         init_piano_keys(state, data);
       }
     }
+    
     // The graphic calculus slows the programm!!!
-    apply_filter_to_sample(my_data, 1024);
+    //apply_filter_to_sample(my_data, 1024);
   }
 }
 
@@ -513,390 +223,11 @@ thread_update(gpointer user_data)
   return NULL;
 }
 
-int x;
-int y;
-int octave_number;
-
-// returns 1 is the (currentx,current_y) is in the rectangle else 0
-int is_in_rectangle(int current_x, int current_y, int rect_top_x, int rect_top_y, int rect_width, int rect_height)
-{
-  return (current_x < rect_top_x + rect_width && current_y < rect_top_y + rect_height && current_x > rect_top_x && current_y > rect_top_y) ? 1 : 0;
-}
-
-// Sets the new octave value
-static gboolean
-on_scale_change_piano(GtkWidget *a_scale, __attribute_maybe_unused__ gpointer user_data)
-{
-  int new_size = gtk_range_get_value(GTK_RANGE(a_scale));
-  // g_print("id: %d\n", id);
-  octave_number = new_size;
-  return G_SOURCE_REMOVE;
-}
-
-// Gets the current event and sets the x,y possition
-static gboolean
-current_key_click(GtkWidget *event_box, __attribute_maybe_unused__ gpointer user_data)
-{
-  Uint8 * keyboard = (Uint8 *)user_data;
-  GdkEvent *event = gtk_get_current_event();
-  GdkDisplay *display = gdk_display_get_default();
-  GdkSeat *seat = gdk_display_get_default_seat(display);
-  GdkDevice *device = gdk_seat_get_pointer(seat);
-
-  if (gdk_event_get_event_type(event) == GDK_BUTTON_PRESS)
-  {
-    gdk_window_get_device_position(gtk_widget_get_window(GTK_WIDGET(event_box)), device, &x, &y, NULL);
-  }
-  if (gdk_event_get_event_type(event) == GDK_BUTTON_RELEASE)
-  {
-    x = -1;
-    y = -1;
-  }
-  gdk_event_free(event);
-  return G_SOURCE_REMOVE;
-}
-
-// General axes set_up
-void set_up_axes_for_piano(GdkWindow *window, GdkRectangle *da, cairo_t *cr, gdouble *clip_x1, gdouble *clip_y1, gdouble *clip_x2, gdouble *clip_y2, gdouble *dx, gdouble *dy)
-{
-  gdk_window_get_geometry(window, &da->x, &da->y, &da->width, &da->height);
-  // Draw white background
-  cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-  cairo_paint(cr);
-  cairo_device_to_user_distance(cr, dx, dy);
-  cairo_clip_extents(cr, clip_x1, clip_y1, clip_x2, clip_y2);
-  cairo_set_line_width(cr, *dx);
-}
-
-// Draws all the lines in one octave
-static gboolean
-on_draw_key_lines(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_octaves)
-{
-  int num_keys = 7 * num_octaves;
-  for (int o = 0; o < num_octaves; o++)
-  {
-    for (size_t j = 0; j <= 7; j++)
-    {
-      int i = j + o * 7;
-      if (j == 7 || j == 3)
-      {
-        cairo_line_to(cr, drawing_area_width * i / num_keys, 0);
-      }
-      else
-      {
-        cairo_line_to(cr, drawing_area_width * i / num_keys, drawing_area_height * 3 / 5);
-      }
-      cairo_line_to(cr, drawing_area_width * i / num_keys, drawing_area_height);
-      cairo_set_source_rgb(cr, 0, 0, 0);
-      cairo_stroke(cr);
-    }
-  }
-  return G_SOURCE_REMOVE;
-}
-
-// Draws one black key
-
-int on_draw_black_key(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_keys, int j, int id)
-{
-  int present = 0;
-  cairo_set_source_rgb(cr, 0, 0, 0);
-
-  int top_left_x = drawing_area_width * j / (num_keys * 4);
-  int top_right_x = drawing_area_width * (2 + j) / (num_keys * 4);
-  int bot_right_y = drawing_area_height * 3 / 5;
-
-  cairo_line_to(cr, top_left_x, 0);
-  cairo_line_to(cr, top_right_x, 0);
-  cairo_line_to(cr, top_right_x, bot_right_y);
-  cairo_line_to(cr, top_left_x, bot_right_y);
-  cairo_line_to(cr, top_left_x, 0);
-
-  if (is_in_rectangle(x, y, top_left_x, 0, top_right_x - top_left_x, bot_right_y))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-  cairo_fill(cr);
-  return present;
-}
-// Draws one left type white key
-
-int on_draw_left_type_white_key(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_keys, int j, int id)
-{
-  int present = 0;
-  // Default color if not pressed
-  cairo_set_source_rgb(cr, 1, 1, 1);
-
-  // The origin from which the tracing starts
-  int origin = drawing_area_width / (num_keys / 7) * j / 7;
-
-  // parameters of the top rectangle
-  int top_rect_width = drawing_area_width * 3 / (num_keys * 4);
-  int top_rect_height = drawing_area_height * 3 / 5;
-
-  // parametes of the bottom rectangle
-  int bot_rect_width = drawing_area_width / num_keys;
-  int bot_rect_height = drawing_area_height * 2 / 5;
-
-  // Draw the top part
-  cairo_line_to(cr, origin, 0);
-  cairo_line_to(cr, top_rect_width + origin, 0);
-  cairo_line_to(cr, top_rect_width + origin, top_rect_height);
-
-  // Check if the key is pressed on the top part
-  if (is_in_rectangle(x, y, origin, 0, top_rect_width, top_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-
-  // Draw the bottom part
-  cairo_line_to(cr, bot_rect_width + origin, top_rect_height);
-  cairo_line_to(cr, bot_rect_width + origin, drawing_area_height);
-  cairo_line_to(cr, origin, drawing_area_height);
-  cairo_line_to(cr, origin, 0);
-
-  // Check if the key is pressed on the bottom part
-  if (is_in_rectangle(x, y, origin, top_rect_height, bot_rect_width, bot_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    present = 1;
-    printf("id: %d\n", id);
-  }
-
-  // Draw the rectangle
-  cairo_fill(cr);
-  return present;
-}
-
-// Draws one center type white key
-int on_draw_center_type_white_key(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_keys, int j, int id)
-{
-  int present = 0;
-  // Default color if not pressed
-  cairo_set_source_rgb(cr, 1, 1, 1);
-  // The tracing origin
-  int origin = drawing_area_width / (num_keys / 7) * j / 7 + drawing_area_width / (num_keys * 4);
-
-  // Top rectangle parameters
-  int top_rect_width = drawing_area_width / (num_keys * 2);
-  int top_rect_height = drawing_area_height * 3 / 5;
-
-  // parametes of the bottom rectangle
-  int bot_rect_width = origin - drawing_area_width / (num_keys * 4);
-  int bot_rect_height = drawing_area_height * 2 / 5;
-
-  // Trace the top part
-  cairo_line_to(cr, origin, 0);
-  cairo_line_to(cr, origin + top_rect_width, 0);
-  cairo_line_to(cr, origin + top_rect_width, top_rect_height);
-
-  // Check if the key is pressed on the top part
-  if (is_in_rectangle(x, y, origin, 0, top_rect_width, top_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-
-  // Trace the bottom part
-  cairo_line_to(cr, drawing_area_width * 3 / (num_keys * 4) + origin, top_rect_height);
-  cairo_line_to(cr, drawing_area_width * 3 / (num_keys * 4) + origin, drawing_area_height);
-  cairo_line_to(cr, bot_rect_width, drawing_area_height);
-  cairo_line_to(cr, bot_rect_width, top_rect_height);
-  cairo_line_to(cr, origin, top_rect_height);
-  cairo_line_to(cr, origin, 0);
-
-  // Check if the key is pressed on the bottom part
-  if (is_in_rectangle(x, y, bot_rect_width, top_rect_height, drawing_area_width / num_keys, bot_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-
-  cairo_fill(cr);
-  return present;
-}
-
-// Draws one right type white key
-int on_draw_right_type_white_key(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_keys, int j, int id)
-{
-  int present = 0;
-  // Default color white
-  cairo_set_source_rgb(cr, 1, 1, 1);
-  // The origin of tracing
-  int origin = drawing_area_width / (num_keys / 7) * j / 7;
-
-  // parameters of the top rectangle
-  int top_rect_width = drawing_area_width * 3 / (num_keys * 4);
-  int top_rect_height = drawing_area_height * 3 / 5;
-
-  // parametes of the bottom rectangle
-  int bot_rect_width = drawing_area_width / num_keys;
-  int bot_rect_height = drawing_area_height * 2 / 5;
-
-  cairo_line_to(cr, origin, 0);
-  cairo_line_to(cr, origin, drawing_area_height);
-  cairo_line_to(cr, origin - bot_rect_width, drawing_area_height);
-  cairo_line_to(cr, origin - bot_rect_width, top_rect_height);
-  cairo_line_to(cr, origin - top_rect_width, top_rect_height);
-  cairo_line_to(cr, origin - top_rect_width, 0);
-  cairo_line_to(cr, origin, 0);
-
-  // Check if the key is pressed on the top part
-  if (is_in_rectangle(x, y, origin - top_rect_width, 0, top_rect_width, top_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-  // Check if the key is pressed on the bottom part
-  if (is_in_rectangle(x, y, origin - bot_rect_width, top_rect_height, bot_rect_width, bot_rect_height))
-  {
-    cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
-    printf("id: %d\n", id);
-    present = 1;
-  }
-  cairo_fill(cr);
-  return present;
-}
-
-// Draws the full keyboard
-static gboolean
-on_draw_full_keyboard(cairo_t *cr, int drawing_area_width, int drawing_area_height, int num_octaves, Uint8 * keyboard)
-{
-  int num_keys = 7 * num_octaves;
-  for (int o = 0; o < num_octaves; o++)
-  {
-    if(on_draw_left_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 0 + o * 7, 0 + 12 * o))
-    {
-      keyboard[0 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[0 + 12 * o] = 0;
-    } // Do
-    if(on_draw_black_key(cr, drawing_area_width, drawing_area_height, num_keys, 3 + o * 28, 1 + 12 * o))
-    {
-      keyboard[1 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[1 + 12 * o] = 0;
-    } // Do#
-    if(on_draw_center_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 1 + o * 7, 2 + 12 * o))
-    {
-      keyboard[2 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[2 + 12 * o] = 0;
-    } //Re
-    if(on_draw_black_key(cr, drawing_area_width, drawing_area_height, num_keys, 7 + o * 28, 3 + 12 * o)  )
-    {
-      keyboard[3 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[3 + 12 * o] = 0;
-    } //Re#
-    if(on_draw_right_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 3 + o * 7, 4 + 12 * o) )
-    {
-      keyboard[4 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[4 + 12 * o] = 0;
-    } //Mi
-    if(on_draw_left_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 3 + o * 7, 5 + 12 * o))
-    {
-      keyboard[5 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[5 + 12 * o] = 0;
-    } //Fa
-    if(on_draw_black_key(cr, drawing_area_width, drawing_area_height, num_keys, 15 + o * 28, 6 + 12 * o))
-    {
-      keyboard[6 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[6 + 12 * o] = 0;
-    } //Fa#
-    if(on_draw_center_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 4 + o * 7, 7 + 12 * o))
-    {
-      keyboard[7 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[7 + 12 * o] = 0;
-    } //Sol
-    if(on_draw_black_key(cr, drawing_area_width, drawing_area_height, num_keys, 19 + o * 28, 8 + 12 * o))
-    {
-      keyboard[8 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[8 + 12 * o] = 0;
-    } //Sol#
-    if(on_draw_center_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 5 + o * 7, 9 + 12 * o))
-    {
-      keyboard[9 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[9 + 12 * o] = 0;
-    } //La
-    if(on_draw_black_key(cr, drawing_area_width, drawing_area_height, num_keys, 23 + o * 28, 10 + 12 * o))
-    {
-      keyboard[10 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[10 + 12 * o] = 0;
-    } //La#
-    if(on_draw_right_type_white_key(cr, drawing_area_width, drawing_area_height, num_keys, 7 + o * 7, 11 + 12 * o))
-    {
-      keyboard[11 + 12 * o] = 1;
-    }
-    else
-    {
-      keyboard[11 + 12 * o] = 0;
-    } //Si
-  }
-  on_draw_key_lines(cr, drawing_area_width, drawing_area_height, num_octaves);
-  return G_SOURCE_REMOVE;
-}
-
-// Dynamically draws the signal
-static gboolean
-on_draw_set_full_keyboard(GtkWidget *widget, cairo_t *cr, __attribute_maybe_unused__ gpointer user_data)
-{
-  Uint8 * keyboard = (Uint8 *)user_data;
-  GdkRectangle da;            /* GtkDrawingArea size */
-  gdouble dx = 2.0, dy = 2.0; /* Pixels between each point */
-  gdouble clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
-  GdkWindow *window = gtk_widget_get_window(widget);
-  int drawing_area_width = gtk_widget_get_allocated_width(widget);
-  int drawing_area_height = gtk_widget_get_allocated_height(widget);
-
-  set_up_axes_for_piano(window, &da, cr, &clip_x1, &clip_x2, &clip_y1, &clip_y2, &dx, &dy);
-
-  on_draw_full_keyboard(cr, drawing_area_width, drawing_area_height, octave_number,keyboard);
-  gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
-  return G_SOURCE_REMOVE;
-}
 
 int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 {
   // The table of threads
   GThread *thread[2];
-  //! WARNING this parameter has to be removed to allow multiple saves and loads
-  int loaded = 0;
   // Init the gtk
   gtk_init(&argc, &argv);
   // Init the node structure
@@ -911,9 +242,6 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
     return 1;
   }
 
-  x = y = -1;
-  octave_number = 1;
-
   /*
     PIANO
   */
@@ -921,10 +249,6 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   GtkDrawingArea *da_piano = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da_piano"));
   GtkEventBox *event_box = GTK_EVENT_BOX(gtk_builder_get_object(builder, "event_box"));
   GtkScale *scale_piano = GTK_SCALE(gtk_builder_get_object(builder, "octaves"));
-
-  g_signal_connect(G_OBJECT(da_piano), "draw", G_CALLBACK(on_draw_set_full_keyboard), vis_d->state);
-  g_signal_connect(G_OBJECT(event_box), "event", G_CALLBACK(current_key_click), vis_d->state);
-  g_signal_connect(G_OBJECT(scale_piano), "value_changed", G_CALLBACK(on_scale_change_piano), NULL);
 
   /*
     Top level Widgets
@@ -1017,11 +341,18 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   g_object_unref(builder);
 
   /*
+    Piano Signals
+  */
+  g_signal_connect(G_OBJECT(da_piano), "draw", G_CALLBACK(on_draw_set_full_keyboard), vis_d->state);
+  g_signal_connect(G_OBJECT(event_box), "event", G_CALLBACK(current_key_click), vis_d->state);
+  g_signal_connect(G_OBJECT(scale_piano), "value_changed", G_CALLBACK(on_scale_change_piano), NULL);
+
+  /*
     Main Utility Signals
   */
 
   // Set the chosen file
-  g_signal_connect(my_file_chooser, "update-preview", G_CALLBACK(update_preview_cb), &loaded);
+  g_signal_connect(my_file_chooser, "selection-changed", G_CALLBACK(update_preview_cb), NULL);
   // Save a current configuration
   g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
   // Track the recording functionalities

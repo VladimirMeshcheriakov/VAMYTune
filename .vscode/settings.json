@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "list_node_adder.h": "c",
+        "bit": "c",
+        "*.tcc": "c",
+        "list": "c",
+        "functional": "c",
+        "random": "c",
+        "limits": "c",
+        "variant": "c",
+        "*.inc": "c"
+    }
+}

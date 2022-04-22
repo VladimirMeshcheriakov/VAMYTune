@@ -47,6 +47,11 @@
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkFileFilter" id="file_filter">
+    <patterns>
+      <pattern>*.triton</pattern>
+    </patterns>
+  </object>
   <object class="GtkAdjustment" id="high_pass_adj">
     <property name="upper">22000</property>
     <property name="step-increment">1</property>
@@ -59,7 +64,7 @@
   </object>
   <object class="GtkAdjustment" id="octave_adjustment">
     <property name="lower">1</property>
-    <property name="upper">7</property>
+    <property name="upper">10</property>
     <property name="value">1</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -107,6 +112,7 @@
               <object class="GtkFileChooserButton" id="file_load">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="filter">file_filter</property>
                 <property name="title" translatable="yes">Load</property>
               </object>
               <packing>
@@ -145,6 +151,7 @@
               <object class="GtkNotebook">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="scrollable">True</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>

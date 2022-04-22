@@ -47,6 +47,16 @@
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
+  <object class="GtkAdjustment" id="end_loop_scale">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkFileFilter" id="file_filter">
+    <patterns>
+      <pattern>*.triton</pattern>
+    </patterns>
+  </object>
   <object class="GtkAdjustment" id="high_pass_adj">
     <property name="upper">22000</property>
     <property name="step-increment">1</property>
@@ -59,14 +69,24 @@
   </object>
   <object class="GtkAdjustment" id="octave_adjustment">
     <property name="lower">1</property>
-    <property name="upper">7</property>
+    <property name="upper">10</property>
     <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="playback_scale">
+    <property name="upper">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="release_phase_adj">
     <property name="upper">3</property>
     <property name="step-increment">0.05</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="start_loop_scale">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="test_frequency_adj">
@@ -107,6 +127,7 @@
               <object class="GtkFileChooserButton" id="file_load">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="filter">file_filter</property>
                 <property name="title" translatable="yes">Load</property>
               </object>
               <packing>
@@ -145,6 +166,181 @@
               <object class="GtkNotebook">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <property name="scrollable">True</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="orientation">vertical</property>
+                        <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkButton" id="record">
+                            <property name="label" translatable="yes">record</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="pause">
+                            <property name="label" translatable="yes">pause</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="play">
+                            <property name="label" translatable="yes">play</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkButton" id="loop">
+                                <property name="label" translatable="yes">loop</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="start_loop">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="adjustment">start_loop_scale</property>
+                                <property name="round-digits">1</property>
+                                <property name="digits">2</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="end_loop">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="adjustment">end_loop_scale</property>
+                                <property name="round-digits">1</property>
+                                <property name="digits">2</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">2</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkButton" id="play_from">
+                                <property name="label" translatable="yes">Play From</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkScale">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="orientation">vertical</property>
+                                <property name="adjustment">playback_scale</property>
+                                <property name="round-digits">1</property>
+                                <property name="digits">2</property>
+                                <property name="value-pos">right</property>
+                              </object>
+                              <packing>
+                                <property name="expand">True</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkDrawingArea" id="record_da">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel" id="record_tab">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Record</property>
+                  </object>
+                  <packing>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
@@ -307,6 +503,7 @@
                     </child>
                   </object>
                   <packing>
+                    <property name="position">1</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
@@ -319,6 +516,7 @@
                     <property name="label" translatable="yes">Signal Creation</property>
                   </object>
                   <packing>
+                    <property name="position">1</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>
@@ -959,7 +1157,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
@@ -972,7 +1170,7 @@
                     <property name="label" translatable="yes">Filter</property>
                   </object>
                   <packing>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>
@@ -1248,7 +1446,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
@@ -1261,7 +1459,7 @@
                     <property name="label" translatable="yes">ADSR</property>
                   </object>
                   <packing>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>

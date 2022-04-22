@@ -9,6 +9,9 @@ WavManagement * init_wav_management()
     wav_management->playback = 0;
     wav_management->record = 0;
     wav_management->recorded_samples = 0;
+    wav_management->loop = 0;
+    wav_management->loop_end = 0;
+    wav_management->loop_start = 0;
     return wav_management;
 }
 

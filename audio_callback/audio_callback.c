@@ -6,6 +6,8 @@
  ? The buffer size of fstream is 1024, the one passed to sig is 1024 same for harm and filtered, so it would be gread to pass a larger buffer to all those functions so that the visualisation happends slowerz
 
 */
+#define START 0.4
+#define STOP 5.7
 
 void audio_callback(void *userdata, uint8_t *stream, int len)
 {
@@ -33,8 +35,19 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         //float val = create_signal(volume,time,440);
         if (us_d->data->wav_manager->playback && (us_d->data->fout_size > us_d->data->wav_manager->played_samples + 44))
         {
-            read_from_wav(us_d->data->fout, "Bach.wav", us_d->data->wav_manager->playback_buffer);
+            read_from_wav(us_d->data->fout,us_d->data->wav_manager->playback_buffer);
             // printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
+            val += us_d->data->wav_manager->playback_buffer[0];
+            us_d->data->wav_manager->played_samples += 8;
+        }
+
+        if (us_d->data->wav_manager->loop)
+        {
+            if((us_d->data->wav_manager->played_samples)%(int)((STOP-START)*BYTES_PER_SECOND) == 0 )
+            {
+                read_from_sec(us_d->data->fout,us_d->data->fout_size,START);
+            }
+            read_from_wav(us_d->data->fout,us_d->data->wav_manager->playback_buffer);
             val += us_d->data->wav_manager->playback_buffer[0];
             us_d->data->wav_manager->played_samples += 8;
         }
