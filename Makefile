@@ -2,7 +2,7 @@
 
 CPPFLAGS = -MMD
 CC = gcc
-CFLAGS =  `pkg-config --cflags gtk+-3.0` -Wall -Wextra  -O3 -g -fsanitize=address
+CFLAGS =  `pkg-config --cflags gtk+-3.0` -Wall -Wextra  -ggdb3 -O3 -g -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize=null -fno-sanitize=alignment
 LDFLAGS =
 LDLIBS = -lm -lSDL2 -lasound `pkg-config --libs gtk+-3.0`
 

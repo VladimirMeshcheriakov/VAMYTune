@@ -36,6 +36,7 @@ void free_all_params(all_params_and_id *all_params)
   free(all_params->freq);
   free(all_params->composite);
   free(all_params->phase);
+  free(all_params->inverse);
   free(all_params);
 }
 
@@ -94,9 +95,9 @@ gboolean on_delete_node_params(__attribute_maybe_unused__ GtkWidget *a_button, g
 
   gtk_container_remove(GTK_CONTAINER(list), GTK_WIDGET(to_delete));
 
-  node_lower_id(nodes, id);
+  node_lower_id(nodes, id,last_events);
   free_all_params(all_params);
-  // node_print(nodes);
+  //node_print(nodes);
 
   global_id -= 1;
 

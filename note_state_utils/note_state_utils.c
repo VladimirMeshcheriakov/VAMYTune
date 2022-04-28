@@ -3,24 +3,7 @@
 // Init the vector of keys and their state
 void init_piano_keys(Uint8 *state, ud *data)
 {
-    Uint8 *piano_keys = data->all_keys->keys;
-    for (int i = 0; i < 127; i++)
-    {
-        piano_keys[i] = state[i];
-    }
-    /*
-    //Side effects
-    data->side_effect[0] = state[35];
-    data->side_effect[1] = state[46];
-    //Enter
-    data->side_effect[2] = state[40];
-    //Backspace
-    data->side_effect[3] = state[42];
-    //P - > playback
-    data->side_effect[4] = state[0];
-    //O -> stop playback
-    data->side_effect[5] = state[0];
-    */
+    data->all_keys->keys = state;
 }
 
 // Do the key on properties

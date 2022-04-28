@@ -8,6 +8,7 @@
 #define SIGNAL_CREATOR_UTILS_H
 
 extern node *nodes;
+extern last_events_stack * last_events;
 // The current highest id
 extern int global_id;
 extern GMainContext *context;

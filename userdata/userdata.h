@@ -39,6 +39,8 @@ typedef struct
     // The size of the file
     uint64_t fout_size;
 
+    float * recorded_sig;
+
     //Signal passed to the visualiser
     float * sig;
 

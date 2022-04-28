@@ -8,6 +8,13 @@
         "random": "c",
         "limits": "c",
         "variant": "c",
-        "*.inc": "c"
+        "*.inc": "c",
+        "optional": "c",
+        "ratio": "c",
+        "system_error": "c",
+        "array": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     }
 }

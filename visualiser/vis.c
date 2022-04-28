@@ -7,6 +7,7 @@ char global_file_name_components[] = "visualiser/glade_signals/signal_components
 
 // The nodes of the different signals
 node *nodes;
+last_events_stack* last_events;
 
 // The current highest id
 int global_id = 0;
@@ -134,6 +135,25 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
+
+void recorded_samples_fill(ud *data)
+{
+  float * buffer = malloc(sizeof(float)*2);
+  for (size_t i = 0; i < data->fout_size; i++)
+  { 
+    if(read_from_wav(data->fout,buffer)==2)
+    {
+      data->recorded_sig[i] = buffer[0];
+    }
+    else
+    {
+      break;
+    }
+      
+  }
+  
+}
+
 // Main loop of the app
 void run_app(vis_data *my_data)
 {
@@ -144,7 +164,7 @@ void run_app(vis_data *my_data)
 
   data->fout = open_WAV("Bach.wav");
   data->fout_size = findSize("Bach.wav");
-
+  
   struct pollfd *pfds;
   int npfds;
 
@@ -224,6 +244,75 @@ thread_update(gpointer user_data)
 }
 
 
+// Dynamically draws the harmonics
+gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+{
+  ud *data = (ud *)user_data;
+
+  GdkRectangle da_parameters; /* GtkDrawingArea size */
+  double dx = 0.5, dy = 0.5;  /* Pixels between each point */
+  double i, clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+
+  GdkWindow *window = gtk_widget_get_window(widget);
+
+  /* Determine GtkDrawingArea dimensions */
+  gdk_window_get_geometry(window,
+                          &da_parameters.x,
+                          &da_parameters.y,
+                          &da_parameters.width,
+                          &da_parameters.height);
+
+  /* Draw on a black background */
+  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+  cairo_paint(cr);
+
+  /* Change the transformation matrix */
+  // Put the origin of the graph into the center of the image
+  cairo_translate(cr, da_parameters.width / 2, da_parameters.height/2);
+  cairo_scale(cr, 100, -100);
+  /* Determine the data points to calculate (ie. those in the clipping zone */
+  cairo_device_to_user_distance(cr, &dx, &dy);
+  cairo_clip_extents(cr, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
+  cairo_set_line_width(cr, dx);
+
+  cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
+  cairo_move_to(cr, clip_x1, 0.0);
+  cairo_line_to(cr, clip_x2, 0.0);
+  cairo_stroke(cr);
+
+  // printf("exec x1 %f , x2 %f, dx %f\n", clip_x1, clip_x2, ((fabs(clip_x1) - fabs(clip_x2) ) / (double)1024));
+  //  printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
+  /* Link each data point */
+  cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
+  size_t cpt =0;
+  for (i = clip_x1; i < clip_x2; i += (clip_x2 * 16  / data->fout_size ))
+  {
+    if(data->wav_manager->playback)
+    { 
+      
+    }
+
+    if(cpt<data->fout_size)
+    {
+      cairo_line_to(cr, i, data->recorded_sig[cpt] * clip_y2);
+    }
+    
+
+    
+    cpt+=1;
+  }
+
+  // printf("cpr:%d\n",cpt);
+  /* Draw the curve */
+
+  // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
+  cairo_stroke(cr);
+  gtk_widget_queue_draw_area(widget, 0, 0, da_parameters.width, da_parameters.height);
+
+  return G_SOURCE_REMOVE;
+}
+
+
 int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 {
   // The table of threads
@@ -232,6 +321,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   gtk_init(&argc, &argv);
   // Init the node structure
   nodes = node_build_sentinel();
+  last_events = last_events_stack_build_sentinel();
   // Init the builder
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
@@ -241,6 +331,12 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
     g_clear_error(&error);
     return 1;
   }
+  /*
+    Record
+    
+  */
+  GtkDrawingArea *da_record = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "record_da"));
+  //g_signal_connect(G_OBJECT(da_record), "draw", G_CALLBACK(on_draw_recorded), vis_d->data);
 
   /*
     PIANO

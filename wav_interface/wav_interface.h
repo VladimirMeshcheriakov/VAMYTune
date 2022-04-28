@@ -11,7 +11,7 @@ Wav files management
 bool record(uint64_t sample, float * sound, const char * filename, const char *type);
 uint64_t findSize(const char *file_name);
 FILE *open_WAV(const char *filename);
-void read_from_wav(FILE* fout,float *sound);
+int read_from_wav(FILE* f_in,  float *sound);
 void read_from_sec(FILE * fout,uint64_t file_size, double sec);
 void loop_between(const char * filename, double start, double end, float * sound );
 

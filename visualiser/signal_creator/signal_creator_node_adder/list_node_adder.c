@@ -68,6 +68,7 @@ void row_create(__attribute_maybe_unused__  GtkWidget *button, gpointer userdata
 void row_create_composite(__attribute_maybe_unused__  GtkWidget *button, gpointer userdata)
 {
   sig_info *sig_data = (sig_info *)userdata;
+  print_sine_info(sig_data);
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
   if (gtk_builder_add_from_file(builder, global_file_name_components, &error) == 0)

@@ -104,7 +104,7 @@ bool record(uint64_t sample_size, float *sound, const char *file_name, const cha
 /*Reads 8 bytes (2 float values) to a sound buffer from the file f_in,
 This function allows to have playback, without destroying the data in the wav file
 */
-void read_from_wav(FILE* f_in,  float *sound)
+int read_from_wav(FILE* f_in,  float *sound)
 {
     // If no sound buffer is given or no filename provided, stop execution
     if (sound == NULL )
@@ -116,8 +116,12 @@ void read_from_wav(FILE* f_in,  float *sound)
     if (file_sound != 2)
     {
         printf("ERROR: Uanble to read the WAV sound\n");
+        
         fclose(f_in);
+        
+        return file_sound;
     }
+    return file_sound;
 }
 
 /*

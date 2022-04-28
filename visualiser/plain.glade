@@ -9,11 +9,13 @@
   </object>
   <object class="GtkAdjustment" id="attack_phase_adj">
     <property name="upper">3</property>
+    <property name="value">0.05</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="attack_top_adj">
     <property name="upper">1</property>
+    <property name="value">1</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
@@ -39,11 +41,13 @@
   </object>
   <object class="GtkAdjustment" id="decay_phase_adj">
     <property name="upper">3</property>
+    <property name="value">0.05</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">10</property>
   </object>
   <object class="GtkAdjustment" id="decay_sustain_adj">
     <property name="upper">1</property>
+    <property name="value">0.5</property>
     <property name="step-increment">0.01</property>
     <property name="page-increment">10</property>
   </object>
@@ -81,6 +85,7 @@
   </object>
   <object class="GtkAdjustment" id="release_phase_adj">
     <property name="upper">3</property>
+    <property name="value">0.05</property>
     <property name="step-increment">0.05</property>
     <property name="page-increment">10</property>
   </object>
@@ -1182,7 +1187,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="orientation">vertical</property>
-                    <property name="position">213</property>
+                    <property name="position">214</property>
                     <property name="position-set">True</property>
                     <property name="wide-handle">True</property>
                     <child>
