@@ -14,17 +14,20 @@ void key_on(ud *data, int note_pos)
     {
         // Actual time set
         data->time_management->time_table[note_pos]->press_time = data->time_management->actual_time;
-        //printf("Press time %f\n",data->time_management->time_table[note_pos]->press_time );
+        printf("Press time %f\n",data->time_management->time_table[note_pos]->press_time );
         // Press was set
         data->time_management->time_table[note_pos]->press_time_set = 1;
         // It has not yet been released
         data->time_management->time_table[note_pos]->released = 0;
+        // It has not yet been prematurely released
+        data->time_management->time_table[note_pos]->premature_release = 0;
     }
 }
 
 // Do the key off properties
 void key_off(ud *data, int note_pos)
 {
+    
     // It is no longer pressed
     data->time_management->time_table[note_pos]->press_time_set = 0;
     // It is now released
@@ -33,13 +36,25 @@ void key_off(ud *data, int note_pos)
     data->time_management->time_table[note_pos]->release_stage = 1;
     // The stop time is saved
     data->time_management->time_table[note_pos]->stop_time = data->time_management->actual_time;
-    //printf("STOP time %f\n",data->time_management->time_table[note_pos]->stop_time );
+    //The total time of the AD phase
+    double ad_phase = data->adsr->attack_to_decay_time + data->adsr->decay_to_sustain_time;
+    //The time the signal actually took
+    double sig_time = data->time_management->time_table[note_pos]->stop_time - data->time_management->time_table[note_pos]->press_time;
+    //If the signal time is shorter than the AD phase, it is a premature release
+    if(sig_time < ad_phase)
+    {
+        //Set the premature release
+        data->time_management->time_table[note_pos]->premature_release = 1;
+        //Se the amplitude to the current amplitude
+        data->time_management->time_table[note_pos]->release_amp = data->all_keys->effects[note_pos];
+    }
+    printf("STOP time %f\n",data->time_management->time_table[note_pos]->stop_time );
 }
 
 // Based on the state change executes a function
 void note_state_change(ud *data, int key_id)
 {
-    if (!(data->all_keys->keys[key_id]))
+    if ((data->all_keys->keys[key_id]))
     {
         // KEY IS ON
         //printf("Key: %d is now on\n",key_id);
@@ -144,10 +159,10 @@ void note_state(Uint8 *state, ud *data)
     
     for (int i = 0; i < 127; i++)
     {
-       
         if (state[i] != past_occ[i])
         {
             // STATE CHANGED
+            printf("changed!\n");
             note_state_change(data, i);
         }
     }

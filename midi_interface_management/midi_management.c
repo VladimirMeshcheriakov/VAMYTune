@@ -105,7 +105,7 @@ int connect_ports(snd_seq_t * seq1)
 }
 
 
-void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard)
+void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard, ud* data)
 {
     switch (ev->type)
     {
@@ -113,16 +113,23 @@ void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard)
         if (ev->data.note.velocity)
         {
             keyboard[(int)ev->data.note.note] = 1;
+            key_on(data,(int)ev->data.note.note);
+            printf("On %d\n",(int)ev->data.note.note);
         }
         else
         {
             keyboard[(int)ev->data.note.note] = 0;
+            key_off(data,(int)ev->data.note.note);
+            printf("Off %d\n",(int)ev->data.note.note);
         }
         break;
     case SND_SEQ_EVENT_NOTEOFF:
         keyboard[(int)ev->data.note.note] = 0;
+        key_off(data,(int)ev->data.note.note);
+        printf("Off %d\n",(int)ev->data.note.note);
         break;
     }
+    
 }
 
 void list_ports(void)

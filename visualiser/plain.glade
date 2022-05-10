@@ -168,10 +168,11 @@
             <property name="orientation">vertical</property>
             <property name="wide-handle">True</property>
             <child>
-              <object class="GtkNotebook">
+              <object class="GtkNotebook" id="note_book">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="scrollable">True</property>
+                <property name="group-name">controls</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
@@ -515,7 +516,7 @@
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="signal_create_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Signal Creation</property>
@@ -1169,7 +1170,7 @@
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="filter_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Filter</property>
@@ -1458,7 +1459,7 @@
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="adsr_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">ADSR</property>

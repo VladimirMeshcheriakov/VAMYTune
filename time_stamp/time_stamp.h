@@ -9,6 +9,8 @@ typedef struct
 {
     // Is the note released ( 1 = yes, 0 = no)
     int released;
+    //Has the note been prematurely released? This means that it was released during the attack or the decay stage
+    int premature_release;
     // The time at which the key was pressed
     double press_time;
     // The time at which the key was released
@@ -17,6 +19,10 @@ typedef struct
     int press_time_set;
     // Is the sound execution in the release stage ( 1 = yes, 0 = no)
     int release_stage;
+    //Amplitude of release
+    float release_amp;
+    
+
 
 } TimeStamp;
 

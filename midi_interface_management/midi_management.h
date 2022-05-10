@@ -7,6 +7,8 @@
 #include <sys/poll.h>
 #include <alsa/asoundlib.h>
 #include <SDL2/SDL.h>
+#include "../note_state_utils/note_state_utils.h"
+#include "../userdata/userdata.h"
 
 #ifndef MIDI_MANAGEMENT_H
 #define MIDI_MANAGEMENT_H
@@ -19,7 +21,7 @@ void init_seq(void);
 void parse_ports(const char *arg);
 snd_seq_t *  create_port(void);
 int connect_ports(snd_seq_t * seq1);
-void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard);
+void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard, ud* data);
 void list_ports(void);
 void help(const char *argv0);
 int parse_input(int argc, char *argv[]);

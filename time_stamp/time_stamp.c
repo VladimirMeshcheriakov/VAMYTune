@@ -9,6 +9,8 @@ TimeStamp *init_time_stamp()
     time_instance->released = 0;
     time_instance->stop_time = 0.0;
     time_instance->release_stage = 0;
+    time_instance->release_amp = 0;
+    time_instance->premature_release = 0;
     return time_instance;
 }
 //Init a table of size size, of timestamp

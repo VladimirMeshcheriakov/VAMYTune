@@ -28,20 +28,110 @@ gboolean on_activate(__attribute_maybe_unused__ GtkWidget *a_check, gpointer use
   return G_SOURCE_REMOVE;
 }
 
+
+//Spinner for ADSR
 gboolean on_spinner_change(GtkWidget *a_spinner, gpointer user_data)
 {
   float *current_time = (float *)user_data;
   float new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(a_spinner));
-  // g_print("%f\n",new_time);
+  g_print("%f\n",new_time);
   *current_time = new_time;
   return G_SOURCE_REMOVE;
 }
+
+/*
+
+typedef struct
+{
+    int val;
+    int id;
+} info;
+
+typedef struct
+{
+    info *info;
+} data;
+
+info *init_info(int val, int id)
+{
+    info *new = malloc(sizeof(info));
+    new->val = val;
+    new->id = id;
+    return new;
+}
+void print_info(data * my_data)
+{
+    printf("val: %d , id: %d\n", my_data->info->val, my_data->info->id);
+}
+
+data *my_data = malloc(sizeof(data));
+my_data->info = init_info(1, 2);
+for (int i = 0; i < 20; i++)
+{
+    info *tmp = my_data->info;
+
+
+    info *new = init_info(2, i);
+    my_data->info = new;
+    free(tmp);
+    print_info(my_data);
+}
+free(my_data->info);
+free(my_data);
+
+
+*/
+
+
+gboolean on_adsr_change_param(GtkWidget *widget, gpointer user_data)
+{
+  adsr_vs_and_param * adsr_and_param = (adsr_vs_and_param * ) user_data;
+  vis_data * vs = adsr_and_param->vs;
+  ADSR ** tmp = &adsr_and_param->vs->data->adsr;
+  float new_time = 0;
+  float actual_val = 0;
+  switch (adsr_and_param->param_index)
+  {
+  case 0:
+    new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+    vs->attack_phase = new_time;
+    break;
+  case 1:
+    new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+    vs->decay_phase = new_time;
+    break;
+  case 2:
+    new_time = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+    vs->release_phase = new_time;
+    break;
+  case 3:
+    actual_val = gtk_range_get_value(GTK_RANGE(widget));
+    vs->attack_amp = actual_val;
+    break;
+  case 4:
+    actual_val = gtk_range_get_value(GTK_RANGE(widget));
+    vs->decay_amp = actual_val;
+    break;
+  default:
+    actual_val = gtk_range_get_value(GTK_RANGE(widget));
+    vs->sustain_amp = actual_val;
+    break;
+  }
+  printf("change param\n");
+  free(*tmp);
+  ADSR * new_adsr = init_ADSR_envelope(vs->attack_phase,vs->decay_phase,vs->release_phase,vs->attack_amp,vs->decay_amp,vs->sustain_amp);
+  adsr_and_param->vs->data->adsr = new_adsr;
+  return G_SOURCE_REMOVE;
+}
+
+
 
 // Scale move (normal)
 gboolean on_scale_change(GtkWidget *a_scale, gpointer user_data)
 {
   float *old_val = (float *)user_data;
   float actual_val = gtk_range_get_value(GTK_RANGE(a_scale));
+  g_print("%f\n",actual_val);
   *old_val = actual_val;
   return G_SOURCE_REMOVE;
 }

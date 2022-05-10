@@ -130,7 +130,7 @@ void find_scopes(char *arr, size_t len, signal_params *params)
       break;
     }
   }
-  node_print(params->signals);
+  //node_print(params->signals);
 }
 
 void write_to_triton(node *nodes)
@@ -197,6 +197,8 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
   }
   signal_params *params = init_signal_params();
   find_scopes(pointer, data_size, params);
+  free(pointer); 
+  node * tmp = params->signals;
   params->signals = params->signals->next;
   while (params->signals != NULL)
   {
@@ -217,10 +219,15 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
     }
     params->signals = params->signals->next;
   }
-  node_free(params->signals);
+  //Free the signal of the sentinell node
+  free(tmp->value->signal);
+  //Free the sig info of a sentinell node
+  free(tmp->value);
+  
+  node_free(tmp);
   free(params);
   g_object_unref(file);
-  free(pointer);
+  
   return G_SOURCE_REMOVE;
 }
 

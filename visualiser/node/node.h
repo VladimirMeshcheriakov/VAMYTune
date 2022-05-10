@@ -21,6 +21,7 @@ typedef struct sig_info
   float phase;
   float inverse;
   int mute;
+  float * signal;
 }sig_info;
 
 //An event could be anything the user has done

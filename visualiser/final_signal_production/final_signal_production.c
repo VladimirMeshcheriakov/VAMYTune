@@ -1,5 +1,6 @@
 #include "final_signal_production.h"
 
+// Calculates one value of one instance
 float instance_signal(float volume, sig_info *vs, double time, float freq)
 {
   float he = 0;
@@ -12,18 +13,40 @@ float instance_signal(float volume, sig_info *vs, double time, float freq)
     he += vs->amp * triangle(volume, freq * vs->freq, time, vs->phase);
     break;
   case 2:
-    he += vs->amp * saw(volume, freq * vs->freq, time, vs->phase,vs->inverse);
+    he += vs->amp * saw(volume, freq * vs->freq, time, vs->phase, vs->inverse);
     break;
   case 3:
-    he += vs->amp * saw2(volume, freq * vs->freq, time, vs->form + 1,vs->phase );
+    he += vs->amp * saw2(volume, freq * vs->freq, time, vs->form + 1, vs->phase);
     break;
   case 4:
-    he += vs->amp * square(volume, freq * vs->freq, time, vs->form,vs->phase);
+    he += vs->amp * square(volume, freq * vs->freq, time, vs->form, vs->phase);
     break;
   }
   return he;
 }
 
+void global_signal_drawing()
+{
+  node *node_copy = nodes;
+  float *final_sig = node_copy->value->signal;
+  memset(final_sig, 0, 4096);
+  while (node_copy->next)
+  {
+    node_copy = node_copy->next;
+    if (node_copy->value->mute == 0)
+    {
+      int cpt = 0;
+      for (size_t i = 0; i < 1024; i++)
+      {
+        double time = cpt / 44100.0;
+        final_sig[i] += instance_signal(0.5, node_copy->value, time, global_freq);
+        cpt += 1;
+      }
+    }
+  }
+}
+
+// Calculates the global signal
 float global_signal(float volume, double time, float freq)
 {
   float he = 0;
@@ -51,7 +74,7 @@ void apply_filter_to_sample(vis_data *data, size_t size)
   float *buf = data->sig_sample;
   float *mag = data->harmonics_sample;
   float *rep = data->filtered_sample;
-  
+
   for (size_t i = 0; i < 1024; i++)
   {
     double time = (double)i / 44100.0;

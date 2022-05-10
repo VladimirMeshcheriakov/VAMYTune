@@ -8,6 +8,11 @@ id_and_param *create_id_with_param(int *id, int param)
   return out_param;
 }
 
+void free_id_and_param(id_and_param * id_param)
+{
+  free(id_param);
+}
+
 all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite, id_and_param *phase, id_and_param *inverse)
 {
   all_params_and_id *all_params = malloc(sizeof(all_params_and_id));
@@ -32,11 +37,11 @@ all_params_and_id *prepare_all_params(int *id)
 
 void free_all_params(all_params_and_id *all_params)
 {
-  free(all_params->amp);
-  free(all_params->freq);
-  free(all_params->composite);
-  free(all_params->phase);
-  free(all_params->inverse);
+  free_id_and_param(all_params->amp);
+  free_id_and_param(all_params->freq);
+  free_id_and_param(all_params->composite);
+  free_id_and_param(all_params->phase);
+  free_id_and_param(all_params->inverse);
   free(all_params);
 }
 
@@ -47,13 +52,31 @@ void affect_new(GtkWidget *a_scale, float *old_val)
   g_print("%f\n", new_val);
 }
 
+// If the global frequency of the signal changes
+// You must recalculate all sub signals
 gboolean on_scale_change_global_freq(GtkWidget *a_scale)
 {
   float new_freq = gtk_range_get_value(GTK_RANGE(a_scale));
   global_freq = new_freq;
+  node * node_copy = nodes;
+  // Recalc for all
+  while (node_copy->next)
+  {
+    node_copy = node_copy->next;
+    int cpt = 0;
+    for (size_t i = 0; i < 1024; i++)
+    {
+      double time = cpt / 44100.0;
+      node_copy->value->signal[i] = instance_signal(0.5, node_copy->value, time, global_freq);
+      cpt += 1;
+    }
+  }
+  global_signal_drawing();
   return G_SOURCE_REMOVE;
 }
 
+// This function is called when a change to a parameter has occured
+// It is hre that we will recalculate a table of a signal
 gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
 {
   id_and_param *id_param = (id_and_param *)user_data;
@@ -83,6 +106,16 @@ gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
   {
     affect_new(a_scale, param);
   }
+  // Update the new sig table
+
+  int cpt = 0;
+  for (size_t i = 0; i < 1024; i++)
+  {
+    double time = cpt / 44100.0;
+    sine_data->signal[i] = instance_signal(0.5, sine_data, time, global_freq);
+    cpt += 1;
+  }
+  global_signal_drawing();
   return G_SOURCE_REMOVE;
 }
 
@@ -95,9 +128,11 @@ gboolean on_delete_node_params(__attribute_maybe_unused__ GtkWidget *a_button, g
 
   gtk_container_remove(GTK_CONTAINER(list), GTK_WIDGET(to_delete));
 
-  node_lower_id(nodes, id,last_events);
+  node_lower_id(nodes, id, last_events);
+
   free_all_params(all_params);
-  //node_print(nodes);
+
+  global_signal_drawing();
 
   global_id -= 1;
 
@@ -111,6 +146,7 @@ gboolean on_toggle(GtkWidget *a_toggle_button, gpointer user_data)
   sig_info *sine_data = id_node->value;
   gboolean state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(a_toggle_button));
   sine_data->mute = state ? 1 : 0;
+  global_signal_drawing();
   return G_SOURCE_REMOVE;
 }
 
@@ -159,21 +195,22 @@ gboolean on_draw_created_or_full_signal(GtkWidget *widget, cairo_t *cr, gpointer
   int drawing_area_height = gtk_widget_get_allocated_height(widget);
   set_up_axes(window, &da, cr, &clip_x1, &clip_x2, &clip_y1, &clip_y2, &dx, &dy, &zoom_x, &zoom_y);
   float he = 0;
+  int cpt = 0;
   for (i = clip_x1; i < -clip_x1; i += fabs(clip_x1) * 2 / 512)
   {
-    double time = (i + fabs(clip_x1)) / 44100.0;
     if (*id != -1)
     {
       mult = 1.0;
       id_node = node_get_at(nodes, *id);
       vs = id_node->value;
-      he = instance_signal(0.5, vs, time, global_freq);
+      he = vs->signal[cpt];
     }
     else
     {
-      he = global_signal(0.5, time, global_freq);
+      he = nodes->value->signal[cpt];
     }
     cairo_line_to(cr, i, mult * he);
+    cpt++;
   }
   cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
   cairo_stroke(cr);

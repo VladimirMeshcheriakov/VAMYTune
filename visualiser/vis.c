@@ -18,6 +18,7 @@ GtkListBox *list;
 // The global frequency controller
 float global_freq = 0.0;
 
+int global_page_id = 0;
 
 
 // Stops the main thread, quits the gtk
@@ -57,6 +58,12 @@ static gboolean key_released(__attribute_maybe_unused__ GtkWidget *widget, GdkEv
   else if (event->keyval == GDK_KEY_m)
   {
     data->wav_manager->loop = 0;
+  }
+  else if(event->keyval == GDK_KEY_z)
+  {
+    //Pop the last venet from the stack and insert it to nodes
+    sig_info* poped_sig = stack_pop(last_events);
+    row_create(NULL,poped_sig);
   }
   return GDK_EVENT_PROPAGATE;
 }
@@ -131,7 +138,6 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   // printf("da_h %d , da_w %d\n",drawing_area_height,drawing_area_width);
 
   gtk_widget_queue_draw_area(widget, 0, 0, drawing_area_width, drawing_area_height);
-
   return G_SOURCE_REMOVE;
 }
 
@@ -154,6 +160,32 @@ void recorded_samples_fill(ud *data)
   
 }
 
+void fliter_param_fill(float * filter_param,vis_data * data)
+{
+  filter_param[0] = data->low_pass_cut;
+  filter_param[1] = data->high_pass_cut;
+  filter_param[2] = data->band_pass_low;
+  filter_param[3] = data->band_pass_high;
+  filter_param[4] = data->band_cut_low;
+  filter_param[5] = data->band_cut_high;
+  filter_param[6] = data->low_active;
+  filter_param[7] = data->high_active;
+  filter_param[8] = data->band_pass_active;
+  filter_param[9] = data->band_cut_active;
+}
+
+int filter_param_comp(float * new, float * old)
+{
+  for (size_t i = 0; i < 10; i++)
+  {
+    if(new[i] != old[i])
+    {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // Main loop of the app
 void run_app(vis_data *my_data)
 {
@@ -161,6 +193,11 @@ void run_app(vis_data *my_data)
   char **argv = my_data->argv;
   ud *data = my_data->data;
   Uint8 *state = my_data->state;
+  ADSR * new_adsr = init_ADSR_envelope(my_data->attack_phase,my_data->decay_phase,my_data->release_phase,my_data->attack_amp,my_data->decay_amp,my_data->sustain_amp);
+  my_data->data->adsr = new_adsr;
+
+  float * filter_params = calloc(10,sizeof(float));
+  float * filter_params_past = calloc(10,sizeof(float));
 
   data->fout = open_WAV("Bach.wav");
   data->fout_size = findSize("Bach.wav");
@@ -187,32 +224,39 @@ void run_app(vis_data *my_data)
   printf("Source  Event                  Ch  Data\n");
 
   npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
-  pfds = alloca(sizeof(*pfds) * npfds);
+  pfds = malloc(sizeof(*pfds) * npfds);
 
   while (my_data->stop_thread)
   {
+    fliter_param_fill(filter_params_past,my_data);
     snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
     int p = poll(pfds, npfds, 20);
-    if (p == 0)
-    {
-      note_state(state, data);
-      init_piano_keys(state, data);
-    }
-    else
+    if( p != 0)
     {
       snd_seq_event_t *event_;
       snd_seq_event_input(seq, &event_);
       if (event_)
       {
-        dump_event(event_, state);
-        note_state(state, data);
-        init_piano_keys(state, data);
+        dump_event(event_, state, data);
       }
     }
-    
+    update_effects(my_data);
     // The graphic calculus slows the programm!!!
-    //apply_filter_to_sample(my_data, 1024);
+    //Get the current page and if it is filters than do the calc!
+    if(global_page_id == 2)
+    {
+      fliter_param_fill(filter_params,my_data);
+      if(filter_param_comp(filter_params,filter_params_past))
+      {
+        apply_filter_to_sample(my_data, 1024);
+      } 
+    }
   }
+
+  free(filter_params);
+  free(filter_params_past);
+  free(pfds);
+  
 }
 
 // Thread Function to run the main app
@@ -229,18 +273,13 @@ thread_func(gpointer user_data)
   return NULL;
 }
 
-// Thread function to update the adsr effects
-static gpointer
-thread_update(gpointer user_data)
+//Tracks the current page of the app to block all the processes not involved on that particular page!
+gboolean on_switch_page(GtkWidget * note_book,__attribute_maybe_unused__ gpointer user_data)
 {
-  vis_data *vs = (vis_data *)user_data;
-  g_print("Starting thread %d\n", 1);
-  while (vs->stop_thread)
-  {
-    update_effects(vs);
-  }
-  g_print("Ending thread %d\n", 1);
-  return NULL;
+  gint current_page = gtk_notebook_get_current_page(GTK_NOTEBOOK(note_book));
+  //printf("curr %d\n",current_page);
+  global_page_id = current_page;
+  return G_SOURCE_REMOVE;
 }
 
 
@@ -313,10 +352,13 @@ gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 }
 
 
+
+
+
 int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 {
   // The table of threads
-  GThread *thread[2];
+  GThread *thread[1];
   // Init the gtk
   gtk_init(&argc, &argv);
   // Init the node structure
@@ -351,6 +393,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
       - Main Window of the application
       - File Chooser (allows to load files)
       - Save button (allows to save a current signal to a file)
+      - GtkNoteBook
   */
 
   // Main Window
@@ -359,6 +402,8 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   GtkFileChooser *my_file_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(builder, "file_load"));
   // Save Button
   GtkButton *save_file = GTK_BUTTON(gtk_builder_get_object(builder, "save_file"));
+  //Notebook
+  GtkNotebook * note_book = GTK_NOTEBOOK(gtk_builder_get_object(builder,"note_book"));
 
   /*
     Signal Creator Widgets
@@ -439,8 +484,8 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   /*
     Piano Signals
   */
-  g_signal_connect(G_OBJECT(da_piano), "draw", G_CALLBACK(on_draw_set_full_keyboard), vis_d->state);
-  g_signal_connect(G_OBJECT(event_box), "event", G_CALLBACK(current_key_click), vis_d->state);
+  g_signal_connect(G_OBJECT(da_piano), "draw", G_CALLBACK(on_draw_set_full_keyboard), vis_d);
+  g_signal_connect(G_OBJECT(event_box), "event", G_CALLBACK(current_key_click), NULL);
   g_signal_connect(G_OBJECT(scale_piano), "value_changed", G_CALLBACK(on_scale_change_piano), NULL);
 
   /*
@@ -453,6 +498,8 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
   // Track the recording functionalities
   g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), (gpointer)vis_d->data);
+  //Track the current page for optimisation
+  g_signal_connect(G_OBJECT(note_book),"notify",G_CALLBACK(on_switch_page),NULL);
   // Destroy signal
   g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d->stop_thread);
 
@@ -504,14 +551,35 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 
   // ADSR signals
 
-  g_signal_connect(G_OBJECT(attack_phase), "value_changed", G_CALLBACK(on_spinner_change), &vis_d->attack_phase);
-  g_signal_connect(G_OBJECT(decay_phase), "value_changed", G_CALLBACK(on_spinner_change), &vis_d->decay_phase);
-  g_signal_connect(G_OBJECT(release_phase), "value_changed", G_CALLBACK(on_spinner_change), &vis_d->release_phase);
+  adsr_vs_and_param * attack_phase_param = malloc(sizeof(adsr_vs_and_param));
+  attack_phase_param->param_index = 0;
+  attack_phase_param->vs = vis_d;
+  adsr_vs_and_param * decay_phase_param = malloc(sizeof(adsr_vs_and_param));
+  decay_phase_param->param_index = 1;
+  decay_phase_param->vs = vis_d;
+  adsr_vs_and_param * release_phase_param = malloc(sizeof(adsr_vs_and_param));
+  release_phase_param->param_index = 2;
+  release_phase_param->vs = vis_d;
+  adsr_vs_and_param * attack_amp = malloc(sizeof(adsr_vs_and_param));
+  attack_amp->param_index = 3;
+  attack_amp->vs = vis_d;
+  adsr_vs_and_param * decay_amp = malloc(sizeof(adsr_vs_and_param));
+  decay_amp->param_index = 4;
+  decay_amp->vs = vis_d;
+  adsr_vs_and_param * sustain_amp = malloc(sizeof(adsr_vs_and_param));
+  sustain_amp->param_index = 5;
+  sustain_amp->vs = vis_d;
 
-  g_signal_connect(G_OBJECT(attack_bot), "value_changed", G_CALLBACK(on_scale_change), &vis_d->attack_amp);
-  g_signal_connect(G_OBJECT(attack_top), "value_changed", G_CALLBACK(on_scale_change), &vis_d->decay_amp);
-  g_signal_connect(G_OBJECT(decay_bot), "value_changed", G_CALLBACK(on_scale_change), &vis_d->sustain_amp);
-  g_signal_connect(G_OBJECT(sustain), "value_changed", G_CALLBACK(on_scale_change), &vis_d->sustain_amp);
+
+
+  g_signal_connect(G_OBJECT(attack_phase), "value_changed", G_CALLBACK(on_adsr_change_param), attack_phase_param);
+  g_signal_connect(G_OBJECT(decay_phase), "value_changed", G_CALLBACK(on_adsr_change_param), decay_phase_param);
+  g_signal_connect(G_OBJECT(release_phase), "value_changed", G_CALLBACK(on_adsr_change_param), release_phase_param);
+
+  g_signal_connect(G_OBJECT(attack_bot), "value_changed", G_CALLBACK(on_adsr_change_param), attack_amp);
+  g_signal_connect(G_OBJECT(attack_top), "value_changed", G_CALLBACK(on_adsr_change_param), decay_amp);
+  g_signal_connect(G_OBJECT(decay_bot), "value_changed", G_CALLBACK(on_adsr_change_param), sustain_amp);
+  g_signal_connect(G_OBJECT(sustain), "value_changed", G_CALLBACK(on_adsr_change_param), sustain_amp);
 
   g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_adsr_draw), vis_d);
 
@@ -535,19 +603,24 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   context = g_main_context_default();
 
   thread[0] = g_thread_new(NULL, thread_func, vis_d);
-  thread[1] = g_thread_new(NULL, thread_update, vis_d);
 
   gtk_widget_show_all(GTK_WIDGET(window));
 
   gtk_main();
 
   g_thread_join(thread[0]);
-  g_thread_join(thread[1]);
 
   free(band_cut_data_low);
   free(band_cut_data_high);
   free(band_pass_data_low);
   free(band_pass_data_high);
+
+  free(attack_amp);
+  free(decay_amp);
+  free(sustain_amp);
+  free(attack_phase_param);
+  free(decay_phase_param);
+  free(release_phase_param);
 
   return 0;
 }

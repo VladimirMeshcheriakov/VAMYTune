@@ -40,8 +40,11 @@ sig_info *init_null_struct()
     sine_data->id = -1;
     sine_data->mute = 0;
     sine_data->inverse = 0;
+    sine_data->signal = calloc(1024,sizeof(float));
     return sine_data;
 }
+
+
 
 void print_sine_info(sig_info *sine_data)
 {
@@ -113,6 +116,7 @@ void node_free(node *head)
     {
         previous = head;
         head = head->next;
+        //free(previous->value->signal);
         free(previous);
     }
 }

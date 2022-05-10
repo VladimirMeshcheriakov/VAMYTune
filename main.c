@@ -20,14 +20,16 @@ vis_data *init_vis_data(int argc, char *argv[], uint64_t *samples_played, size_t
     vis_d->stop_thread = 1;
     vis_d->argc = argc;
     vis_d->argv = argv;
-    vis_d->x_zoom = 300;
-    vis_d->y_zoom = 300;
+    vis_d->x_zoom = 100;
+    vis_d->y_zoom = 100;
+
     vis_d->attack_amp = 0.0;
     vis_d->decay_amp = 1.0;
     vis_d->sustain_amp = 0.5;
-    vis_d->attack_phase = 0.05;
-    vis_d->decay_phase = 0.05;
-    vis_d->release_phase = 0.05;
+    vis_d->attack_phase = 0.5;
+    vis_d->decay_phase = 0.5;
+    vis_d->release_phase = 0.5;
+
     return vis_d;
 }
 

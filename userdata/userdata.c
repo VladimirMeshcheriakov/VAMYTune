@@ -27,7 +27,7 @@ ud *init_ud(uint64_t *samples_played, size_t size)
 void free_user_data(ud *data)
 {
     free(data->side_effect);
-    //free(data->adsr);
+    free(data->adsr);
     free_keys(data->all_keys);
     free_time_management(data->time_management);
     freeArray(data->fstream);

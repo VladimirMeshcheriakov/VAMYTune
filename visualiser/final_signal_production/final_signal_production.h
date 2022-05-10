@@ -10,10 +10,12 @@ extern node *nodes;
 // The current highest id
 extern int global_id;
 // The list in which the widgets are stored
+extern float global_freq;
 
 float instance_signal(float volume, sig_info *vs, double time, float freq);
 float global_signal(float volume, double time, float freq);
 void apply_filter_to_sample(vis_data *data, size_t size);
 float signal_treat(float volume, ud *data);
+void global_signal_drawing();
 
 #endif 
