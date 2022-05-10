@@ -12,12 +12,18 @@ Now launch it with ./main -p 'the port of your midi-keyboard'
 To create a signal, go to the "Signal Creator" tab, and choose one of 5 basic signals than click on it.
 This will add this basic signal to the creator panel. Now you can play arround with parameters of the signal,
 To set the desired curve. Let us describe the parameters:
+
     -   amplitude : This is the amplitude of this basic signal
+    
     - frequency : This is the relative frequency in regards to the played frequency
         For instance if playing an A (440Hz) and the relative fequency is set to 0.5, the result will sound like 0.5 * 440 = 220Hz
+        
     - phase : This is the phase of a signal
+    
     - components : Complex parameter that represents the number of sinusoidal waves to sum in a saw-composite signal
+    
     - shift : Shifts the square wave
+    
 You can also load signals from files with names .triton, and save the created signals to those files
 
 To create and modify the ADSR of a signal go to the ADSR tab
