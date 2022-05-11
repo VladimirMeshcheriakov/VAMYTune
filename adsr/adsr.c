@@ -18,10 +18,6 @@ ADSR *init_ADSR_envelope(double attack_to_decay_time,
     adsr->start_amplitude = start_amplitude;
     adsr->sustain_amplitude = sustain_amplitude;
 
-    //THOSE TWO VALUE MUST BE PUT INTO THE TIME STAMP LIFECYCKE OF A NOTE
-    adsr->release_amplitude = attack_top_amplitude;
-    adsr->premature_release = 0;
-
     return adsr;
 }
 
@@ -34,13 +30,13 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
     // printf("time: %f, actual: %f\n",time,actual_signal_time);
     //  If the time from the press of the signal is still in the AD phase than calculate the amplitude
 
-    if (actual_signal_time <= envelope->attack_to_decay_time + envelope->decay_to_sustain_time)
+    if (actual_signal_time <= envelope->attack_to_decay_time + envelope->decay_to_sustain_time && (envelope->attack_to_decay_time != 0 || envelope->decay_to_sustain_time != 0))
     {
         // AD
 
         // if in the Attack phase
         // WORKS
-        if (actual_signal_time <= envelope->attack_to_decay_time || t_inst->premature_release)
+        if ((actual_signal_time <= envelope->attack_to_decay_time || t_inst->premature_release) && envelope->attack_to_decay_time != 0)
         {
             if (t_inst->premature_release)
             {
@@ -91,6 +87,10 @@ float adsr_get_amplitude(double time, ADSR *envelope, TimeStamp *t_inst)
     {
         // SR
         // Release
+        if(envelope->release_time ==0)
+        {
+            return 0;
+        }
         if (t_inst->released)
         {
             // If the time the signal is played is still in the ADSR enveloppe,

@@ -50,20 +50,16 @@ void global_signal_drawing()
 float global_signal(float volume, double time, float freq)
 {
   float he = 0;
-  int j = 0;
-  while (j < global_id)
+  node *id_node = nodes->next;
+  while (id_node != NULL)
   {
-    node *id_node = node_get_at(nodes, j);
-    if (id_node != NULL)
+    sig_info *vs = id_node->value;
+    if (!vs->mute)
     {
-      sig_info *vs = id_node->value;
-      if (!vs->mute)
-      {
-        he += instance_signal(volume, vs, time, freq);
-      }
+      he += instance_signal(volume, vs, time, freq);
     }
 
-    j++;
+    id_node = id_node->next;
   }
   return he;
 }

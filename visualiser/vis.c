@@ -120,7 +120,16 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   float sig_sum = vs->attack_phase + vs->decay_phase + vs->release_phase + sust_phase;
 
-  float factor = clip_x2 / sig_sum;
+  float factor;
+  if(sig_sum==0)
+  {
+    factor = clip_x2;
+  }
+  else
+  {
+    factor = clip_x2 / sig_sum;
+  }
+  
 
   int cpt = 0;
 
@@ -230,7 +239,7 @@ void run_app(vis_data *my_data)
   {
     fliter_param_fill(filter_params_past,my_data);
     snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
-    int p = poll(pfds, npfds, 20);
+    int p = poll(pfds, npfds, 30);
     if( p != 0)
     {
       snd_seq_event_t *event_;
