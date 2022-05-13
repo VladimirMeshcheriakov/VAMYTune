@@ -92,21 +92,21 @@ void find_scopes(char *arr, size_t len, signal_params *params)
                 // printf("Info freq is set to %f \n", test);
                 break;
               case 3:
-                if(info->type < 3)
+                if (info->type < 3)
                 {
-                  info->phase = (test/100.00);
+                  info->phase = (test / 100.00);
                 }
                 else
                 {
-                  info->form = (test/100.00);
+                  info->form = (test / 100.00);
                 }
                 // printf("Info form is set to %f \n", test);
                 break;
               case 4:
-                info->phase = (test/100.00);
+                info->phase = (test / 100.00);
                 break;
               case 5:
-                info->inverse = (test/100.00);
+                info->inverse = (test / 100.00);
                 break;
               }
               param_num += 1;
@@ -130,14 +130,14 @@ void find_scopes(char *arr, size_t len, signal_params *params)
       break;
     }
   }
-  //node_print(params->signals);
+  // node_print(params->signals);
 }
 
-void write_to_triton(node *nodes)
+void write_to_triton(node *nodes, const char *name)
 {
   // Beg of file
   FILE *file;
-  file = fopen("out.triton", "w");
+  file = fopen(name, "w");
   if (file == NULL)
   {
     printf("error\n");
@@ -160,28 +160,28 @@ void write_to_triton(node *nodes)
   fclose(file);
 }
 
-gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data)
+void load_from_triton(const char *uri, int uri_or_path)
 {
-  const char *uri = gtk_file_chooser_get_uri(file_chooser);
-  if (uri == NULL)
+  GFile *file;
+  if (uri_or_path)
   {
-    g_print("uri null\n");
-    return G_SOURCE_REMOVE;
+    file = g_file_new_for_path(uri);
+    if (file == NULL)
+    {
+      g_print("file null\n");
+      return G_SOURCE_REMOVE;
+    }
   }
-  g_print("%s\n", uri);
-  GFile *file = g_file_new_for_uri(uri);
-  if (file == NULL)
+  else
   {
-    g_print("file null\n");
-    return G_SOURCE_REMOVE;
+    file = g_file_new_for_uri(uri);
+    if (file == NULL)
+    {
+      g_print("file null\n");
+      return G_SOURCE_REMOVE;
+    }
   }
-  GFileInfo *info;
-  info = g_file_query_info(file, G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
-  if (info == NULL)
-  {
-    g_print("info null\n");
-    return G_SOURCE_REMOVE;
-  }
+
   GBytes *file_bytes = g_file_load_bytes(file, NULL, NULL, NULL);
   if (file_bytes == NULL)
   {
@@ -197,8 +197,8 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
   }
   signal_params *params = init_signal_params();
   find_scopes(pointer, data_size, params);
-  free(pointer); 
-  node * tmp = params->signals;
+  free(pointer);
+  node *tmp = params->signals;
   params->signals = params->signals->next;
   while (params->signals != NULL)
   {
@@ -219,20 +219,66 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
     }
     params->signals = params->signals->next;
   }
-  //Free the signal of the sentinell node
+  // Free the signal of the sentinell node
   free(tmp->value->signal);
-  //Free the sig info of a sentinell node
+  // Free the sig info of a sentinell node
   free(tmp->value);
-  
+
   node_free(tmp);
   free(params);
   g_object_unref(file);
-  
+}
+
+gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data)
+{
+  const char *uri = gtk_file_chooser_get_uri(file_chooser);
+  printf("%s\n", uri);
+  if (uri == NULL)
+  {
+    g_print("uri null\n");
+    return G_SOURCE_REMOVE;
+  }
+  load_from_triton(uri,0);
+
   return G_SOURCE_REMOVE;
+}
+
+void on_save_file(GtkWidget *widget, __attribute_maybe_unused__ gpointer data)
+{
+  GtkEntry *entry = (GtkEntry *)data;
+  GtkWidget *parent = gtk_widget_get_parent(entry);
+  parent = gtk_widget_get_parent(parent);
+  parent = gtk_widget_get_parent(parent);
+  const gchar *text = gtk_entry_get_text(GTK_ENTRY(entry));
+  write_to_triton(nodes, text);
+  gtk_widget_destroy(GTK_WIDGET(parent));
+}
+
+void on_cancel_file(GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
+{
+  GtkDialog *dialog = (GtkDialog *)user_data;
+  gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
 gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button)
 {
-  write_to_triton(nodes);
+  GtkBuilder *builder = gtk_builder_new();
+  GError *error = NULL;
+
+  if (gtk_builder_add_from_file(builder, "visualiser/load_save_triton/load_save.glade", &error) == 0)
+  {
+    g_printerr("Error loading file: %s\n", error->message);
+    g_clear_error(&error);
+  }
+
+  GtkDialog *file_chooser_dialog = GTK_DIALOG(gtk_builder_get_object(builder, "file_chooser_dialog"));
+  GtkButton *file_chooser_cancel = GTK_BUTTON(gtk_builder_get_object(builder, "file_chooser_cancel"));
+  GtkButton *file_chooser_save = GTK_BUTTON(gtk_builder_get_object(builder, "file_chooser_save"));
+  GtkEntry *file_chooser_text_entry = GTK_ENTRY(gtk_builder_get_object(builder, "file_chooser_text_entry"));
+
+  g_signal_connect(G_OBJECT(file_chooser_save), "clicked", G_CALLBACK(on_save_file), file_chooser_text_entry);
+  g_signal_connect(G_OBJECT(file_chooser_cancel), "clicked", G_CALLBACK(on_cancel_file), file_chooser_dialog);
+
+  gtk_dialog_run(GTK_DIALOG(file_chooser_dialog));
   return G_SOURCE_REMOVE;
 }

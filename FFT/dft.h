@@ -7,7 +7,6 @@
 typedef struct
 {
     ud* data;
-    Uint8 *state;
 
     int stop_thread;
 

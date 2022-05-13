@@ -1,17 +1,14 @@
-#include <gtk/gtk.h>
-#include <math.h>
 #include <cairo.h>
-#include "../midi_interface_management/midi_management.h"
 #include "../signals/signals.h"
-#include <SDL2/SDL.h>
+
+#include "midi_device_chooser/midi_device_chooser.h"
 #include "filter_visualiser/filter_vis.h"
 #include "load_save_triton/load_save_triton.h"
+#include "last_session/last_session.h"
 #include "piano_widget/piano_widget.h"
 
 
 #define N_THREADS 1
-
-
 
 #ifndef VIS_H
 #define VIS_H

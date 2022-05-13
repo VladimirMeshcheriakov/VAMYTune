@@ -353,6 +353,71 @@
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
+                      <object class="GtkButton" id="play_midi">
+                        <property name="label" translatable="yes">play</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="scrolled_window">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="shadow-type">in</property>
+                        <child>
+                          <object class="GtkViewport" id="view_port">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <child>
+                              <object class="GtkEventBox" id="midi_event">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="above-child">True</property>
+                                <child>
+                                  <object class="GtkDrawingArea" id="da_midi_play">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">True</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child type="tab">
+                  <object class="GtkLabel" id="play_midi_tab">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Midi</property>
+                  </object>
+                  <packing>
+                    <property name="position">1</property>
+                    <property name="tab-fill">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="orientation">vertical</property>
+                    <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -509,20 +574,20 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="signal_create_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Signal Creation</property>
                   </object>
                   <packing>
-                    <property name="position">1</property>
+                    <property name="position">2</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>
@@ -1163,20 +1228,20 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="filter_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Filter</property>
                   </object>
                   <packing>
-                    <property name="position">2</property>
+                    <property name="position">3</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>
@@ -1317,7 +1382,7 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkDrawingArea" id="da">
+                              <object class="GtkDrawingArea" id="da1">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                               </object>
@@ -1452,20 +1517,20 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                     <property name="tab-expand">True</property>
                     <property name="reorderable">True</property>
                     <property name="detachable">True</property>
                   </packing>
                 </child>
                 <child type="tab">
-                  <object class="GtkLabel">
+                  <object class="GtkLabel" id="adsr_tab">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">ADSR</property>
                   </object>
                   <packing>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                     <property name="tab-expand">True</property>
                     <property name="tab-fill">False</property>
                     <property name="reorderable">True</property>

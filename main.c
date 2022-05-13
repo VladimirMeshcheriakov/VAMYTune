@@ -1,11 +1,5 @@
 #include "audio_callback/audio_callback.h"
 
-Uint8 *init_state_midi_keyboard(size_t size)
-{
-    Uint8 *state = calloc(size, sizeof(Uint8));
-    return state;
-}
-
 vis_data *init_vis_data(int argc, char *argv[], uint64_t *samples_played, size_t num_keys)
 {
     vis_data *vis_d = malloc(sizeof(vis_data));
@@ -15,8 +9,6 @@ vis_data *init_vis_data(int argc, char *argv[], uint64_t *samples_played, size_t
     vis_d->harmonics_sample = malloc(sizeof(float) * 1024);
     ud *data = init_ud(samples_played, num_keys);
     vis_d->data = data;
-    Uint8 *state = init_state_midi_keyboard(num_keys);
-    vis_d->state = state;
     vis_d->stop_thread = 1;
     vis_d->argc = argc;
     vis_d->argv = argv;
@@ -26,9 +18,9 @@ vis_data *init_vis_data(int argc, char *argv[], uint64_t *samples_played, size_t
     vis_d->attack_amp = 0.0;
     vis_d->decay_amp = 1.0;
     vis_d->sustain_amp = 0.5;
-    vis_d->attack_phase = 0.5;
-    vis_d->decay_phase = 0.5;
-    vis_d->release_phase = 0.5;
+    vis_d->attack_phase = 0.05;
+    vis_d->decay_phase = 0.05;
+    vis_d->release_phase = 0.05;
 
     return vis_d;
 }

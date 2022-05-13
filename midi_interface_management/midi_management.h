@@ -21,9 +21,10 @@ void init_seq(void);
 void parse_ports(const char *arg);
 snd_seq_t *  create_port(void);
 int connect_ports(snd_seq_t * seq1);
-void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard, ud* data);
+void dump_event(const snd_seq_event_t *ev, ud* data);
 void list_ports(void);
 void help(const char *argv0);
 int parse_input(int argc, char *argv[]);
+void connect_to_port(char *port_name);
 
 #endif

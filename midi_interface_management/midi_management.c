@@ -1,11 +1,8 @@
 #include "midi_management.h"
 
-
-
 static snd_seq_t *seq;
-static int port_count;
+static int port_count = 1;
 static snd_seq_addr_t *ports;
-
 
 /* prints an error message to stderr, and dies */
 void fatal(const char *msg, ...)
@@ -47,11 +44,20 @@ void init_seq(void)
     check_snd("set client name", err);
 }
 
+void connect_to_port(char *port_name)
+{
+    ports = realloc(ports, port_count * sizeof(snd_seq_addr_t));
+    int err = snd_seq_parse_address(seq, &ports[0], port_name);
+    if (err < 0)
+    {
+        fatal("Invalid port %s - %s", port_name, snd_strerror(err));
+    }   
+}
+
 /* parses one or more port addresses from the string */
 void parse_ports(const char *arg)
 {
     char *buf, *s, *port_name;
-    int err;
 
     /* make a copy of the string because we're going to modify it */
     buf = strdup(arg);
@@ -61,22 +67,20 @@ void parse_ports(const char *arg)
     {
         /* Assume that ports are separated by commas.  We don't use
          spaces because those are valid in client names. */
+        printf("%s\n", port_name);
         s = strchr(port_name, ',');
         if (s)
             *s = '\0';
 
         ++port_count;
-        ports = realloc(ports, port_count * sizeof(snd_seq_addr_t));
-        check_mem(ports);
-
-        err = snd_seq_parse_address(seq, &ports[port_count - 1], port_name);
-        if (err < 0)
-            fatal("Invalid port %s - %s", port_name, snd_strerror(err));
+        connect_to_port(port_name);
     }
     free(buf);
 }
 
-snd_seq_t *  create_port(void)
+
+
+snd_seq_t *create_port(void)
 {
     int err;
 
@@ -89,7 +93,7 @@ snd_seq_t *  create_port(void)
     return seq;
 }
 
-int connect_ports(snd_seq_t * seq1)
+int connect_ports(snd_seq_t *seq1)
 {
     int i, err;
 
@@ -104,43 +108,38 @@ int connect_ports(snd_seq_t * seq1)
     return port_count;
 }
 
-
-void dump_event(const snd_seq_event_t *ev, Uint8 *keyboard, ud* data)
+void dump_event(const snd_seq_event_t *ev, ud *data)
 {
     switch (ev->type)
     {
     case SND_SEQ_EVENT_NOTEON:
         if (ev->data.note.velocity)
         {
-            keyboard[(int)ev->data.note.note] = 1;
-            key_on(data,(int)ev->data.note.note);
-            printf("On %d\n",(int)ev->data.note.note);
+            data->all_keys->keys[(int)ev->data.note.note] = 1;
+            key_on(data, (int)ev->data.note.note);
+            printf("On %d\n", (int)ev->data.note.note);
         }
         else
         {
-            keyboard[(int)ev->data.note.note] = 0;
-            key_off(data,(int)ev->data.note.note);
-            printf("Off %d\n",(int)ev->data.note.note);
+            data->all_keys->keys[(int)ev->data.note.note] = 0;
+            key_off(data, (int)ev->data.note.note);
+            printf("Off %d\n", (int)ev->data.note.note);
         }
         break;
     case SND_SEQ_EVENT_NOTEOFF:
-        keyboard[(int)ev->data.note.note] = 0;
-        key_off(data,(int)ev->data.note.note);
-        printf("Off %d\n",(int)ev->data.note.note);
+        data->all_keys->keys[(int)ev->data.note.note] = 0;
+        key_off(data, (int)ev->data.note.note);
+        printf("Off %d\n", (int)ev->data.note.note);
         break;
     }
-    
 }
 
 void list_ports(void)
 {
     snd_seq_client_info_t *cinfo;
     snd_seq_port_info_t *pinfo;
-
     snd_seq_client_info_alloca(&cinfo);
     snd_seq_port_info_alloca(&pinfo);
-
-    puts(" Port    Client name                      Port name");
 
     snd_seq_client_info_set_client(cinfo, -1);
     while (snd_seq_query_next_client(seq, cinfo) >= 0)
@@ -154,27 +153,13 @@ void list_ports(void)
             /* we need both READ and SUBS_READ */
             if ((snd_seq_port_info_get_capability(pinfo) & (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ)) != (SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ))
                 continue;
-            printf("%3d:%-3d  %-32.32s %s\n",
-                   snd_seq_port_info_get_client(pinfo),
-                   snd_seq_port_info_get_port(pinfo),
-                   snd_seq_client_info_get_name(cinfo),
-                   snd_seq_port_info_get_name(pinfo));
+
+            printf("%3d:%-32.32s\n",
+                    snd_seq_port_info_get_client(pinfo),
+                    snd_seq_client_info_get_name(cinfo));
         }
     }
 }
-
-void help(const char *argv0)
-{
-    printf("Usage: %s [options]\n"
-           "\nAvailable options:\n"
-           "  -h,--help                  this help\n"
-           "  -V,--version               show version\n"
-           "  -l,--list                  list input ports\n"
-           "  -p,--port=client:port,...  source port(s)\n",
-           argv0);
-}
-
-
 
 int parse_input(int argc, char *argv[])
 {
@@ -192,7 +177,6 @@ int parse_input(int argc, char *argv[])
         switch (c)
         {
         case 'h':
-            help(argv[0]);
             return 0;
         case 'V':
 
@@ -202,11 +186,9 @@ int parse_input(int argc, char *argv[])
             return 0;
             break;
         case 'p':
-            printf("%s\n", optarg);
-            parse_ports(optarg);
+            connect_to_port("20");
             break;
         default:
-            help(argv[0]);
             return 1;
         }
     }

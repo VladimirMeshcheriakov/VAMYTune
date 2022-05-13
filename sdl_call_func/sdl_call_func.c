@@ -68,8 +68,6 @@ void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
 
     SDL_PauseAudioDevice(audio_device_id, 0);
 
-    init_piano_keys(data->state, data->data);
-
     init_sig_and_filtered_sample(data);
 
     gtk_run_app(data,argc, argv);

@@ -27,7 +27,9 @@ visualiser/filter_visualiser/filter_vis.c \
 visualiser/signal_creator/signal_creator_utils/signal_creator_utils.c \
 visualiser/signal_creator/signal_creator_node_adder/list_node_adder.c \
 visualiser/piano_widget/piano_widget.c \
+visualiser/midi_device_chooser/midi_device_chooser.c \
 visualiser/load_save_triton/load_save_triton.c \
+visualiser/last_session/last_session.c \
 visualiser/vis.c \
 sdl_call_func/sdl_call_func.c \
 audio_callback/audio_callback.c 
@@ -57,7 +59,9 @@ visualiser/filter_visualiser/filter_vis.o \
 visualiser/signal_creator/signal_creator_utils/signal_creator_utils.o \
 visualiser/signal_creator/signal_creator_node_adder/list_node_adder.o \
 visualiser/piano_widget/piano_widget.o \
+visualiser/midi_device_chooser/midi_device_chooser.o \
 visualiser/load_save_triton/load_save_triton.o \
+visualiser/last_session/last_session.o \
 visualiser/vis.o \
 sdl_call_func/sdl_call_func.o \
 audio_callback/audio_callback.o \
@@ -90,7 +94,9 @@ clean:
 	visualiser/signal_creator/signal_creator_utils/signal_creator_utils \
 	visualiser/signal_creator/signal_creator_node_adder/list_node_adder \
 	visualiser/piano_widget/piano_widget \
+	visualiser/midi_device_chooser/midi_device_chooser \
 	visualiser/load_save_triton/load_save_triton \
+	visualiser/last_session/last_session \
 	visualiser/vis \
 	sdl_call_func/sdl_call_func \
 	audio_callback/audio_callback \

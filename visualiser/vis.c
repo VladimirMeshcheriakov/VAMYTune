@@ -1,13 +1,621 @@
 #include "vis.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <ctype.h>
+#include <time.h>
+#include <unistd.h>
+#include <gtk/gtk.h>
+#include <pthread.h>
 
+#define SCROLL_WINDOW_HEIGHT 480
+#define SCROLL_WINDOW_WIDTH 320
+
+#define NUMBER_OF_KEYS 127
+#define MINUTE 60
+
+#define FULL_WIDTH 24000
+#define FULL_HEIGHT 12700
+
+#define RECT_HEIGHT FULL_HEIGHT / NUMBER_OF_KEYS
+#define RECT_WIDTH FULL_WIDTH / (MINUTE * 20)
+
+typedef struct rectangle
+{
+  int x;
+  int y;
+  int width;
+  int height;
+  int x_ext;
+  int y_ext;
+  int id;
+} rectangle;
+
+typedef struct rect_node
+{
+  struct rectangle *value;
+  struct rect_node *next;
+} rect_node;
+
+rectangle *init_null_rectangle()
+{
+  rectangle *new_rectangle = malloc(sizeof(rectangle));
+  new_rectangle->height = 0;
+  new_rectangle->width = 0;
+  new_rectangle->x = 0;
+  new_rectangle->y = 0;
+  new_rectangle->x_ext = 0;
+  new_rectangle->y_ext = 0;
+  new_rectangle->id = -1;
+  return new_rectangle;
+}
+
+rectangle *init_rectangle(int x, int y, int height, int width, int x_ext, int y_ext, int id)
+{
+  rectangle *new_rectangle = malloc(sizeof(rectangle));
+  new_rectangle->height = height;
+  new_rectangle->width = width;
+  new_rectangle->x = x;
+  new_rectangle->y = y;
+  new_rectangle->x_ext = x_ext;
+  new_rectangle->y_ext = y_ext;
+  new_rectangle->id = id;
+  return new_rectangle;
+}
+
+void print_rectangle(rectangle *rect)
+{
+  printf(" Id: %d --->  x: %d, y: %d, x_ext: %d, y_ext: %d, width: %d, height: %d\n", rect->id, rect->x, rect->y, rect->x_ext, rect->y_ext, rect->width, rect->height);
+}
+
+// Verify if rect_node is empty
+int rect_node_is_empty(rect_node *head)
+{
+  return head == NULL;
+}
+
+// Verify if rect_node is not empty
+int rect_node_is_not_empty(rect_node *head)
+{
+  return head != NULL;
+}
+
+// Builds the sentinell of the rect_node structure
+rect_node *rect_node_build_sentinel()
+{
+  // Creates the sentinel.
+  rect_node *head = malloc(sizeof(rect_node));
+  head->value = init_null_rectangle();
+  head->next = NULL;
+  // Returns the head of the rect_node which is the sentinell.
+  return head;
+}
+
+// Prints the contents of a rect_node rect_node* rect_node_build_sentinel()
+void rect_node_print(rect_node *head)
+{
+  while (head->next)
+  {
+    head = head->next;
+    print_rectangle(head->value);
+  }
+}
+
+// Frees the allocated rect_node
+void rect_node_free(rect_node *head)
+{
+  rect_node *previous;
+
+  while (head)
+  {
+    previous = head;
+    head = head->next;
+    free(previous->value);
+    free(previous);
+  }
+}
+
+// Inserts a value right after the head
+/*
+
+    HEAD -> 1 -> 2 -> ..... -> 8
+    rect_node_insert_beg(rect_node* HEAD, int 42);
+    HEAD -> 42 -> 1 -> 2 -> ..... -> 8
+
+*/
+void rect_node_insert_beg(rect_node *head, rectangle *value)
+{
+  rect_node *tmp = malloc(sizeof(rect_node));
+  tmp->value = value;
+  tmp->next = head->next;
+  head->next = tmp;
+}
+
+// Inserts a value right after the head
+/*
+
+    HEAD -> 1 -> 2 -> ..... -> 8
+    rect_node_insert_end(rect_node* HEAD, int 42);
+    HEAD -> 1 -> 2 -> ..... -> 8 -> 42
+
+*/
+void rect_node_insert_end(rect_node *head, rectangle *value)
+{
+  rect_node *tmp = malloc(sizeof(rect_node));
+  for (; rect_node_is_not_empty(head->next); head = head->next)
+  {
+    // This loop runs to the last rect_node and quits with head being that last rect_node
+    continue;
+  }
+  tmp->value = value;
+  tmp->next = head->next;
+  head->next = tmp;
+}
+
+// Deletes the first occurence of value in rect_node
+int rect_node_delete_first_occurence(rect_node *head, rect_node *sup, int id)
+{
+  int seen = 0;
+  rect_node *tmp = head;
+  while (head->next != NULL)
+  {
+    if (head->next->value->id == id)
+    {
+      tmp = head;
+      seen += 1;
+      break;
+    }
+    head = head->next;
+  }
+  if (seen == 0)
+  {
+    return seen;
+  }
+  rect_node *output = head->next;
+  tmp->next = tmp->next->next;
+  output->next = NULL;
+  while (sup->next != NULL)
+  {
+    sup = sup->next;
+  }
+  sup->next = output;
+  return seen;
+}
+
+// Deletes all occurences of value in rect_node
+int rect_node_delete_all_occurences(rect_node *head, rect_node *sup, int id)
+{
+  int seen = 0;
+  rect_node *tmp = head;
+  while (head->next != NULL)
+  {
+    if (head->next->value->id == id)
+    {
+      seen += 1;
+      tmp = head;
+      rect_node *output = head->next;
+      tmp->next = tmp->next->next;
+      output->next = NULL;
+      while (sup->next != NULL)
+      {
+        sup = sup->next;
+      }
+      sup->next = output;
+      continue;
+    }
+    head = head->next;
+  }
+  return seen;
+}
+
+// Get a rect_node at index if index invalid return NULL
+// DOES NOT DELETE THE rect_node
+rect_node *rect_node_get_at(rect_node *rect_node, int index)
+{
+  while (index > 0)
+  {
+    rect_node = rect_node->next;
+
+    index--;
+  }
+  if (rect_node != NULL)
+  {
+    rect_node = rect_node->next;
+  }
+  return rect_node;
+}
+
+int rect_node_val_count(rect_node *head)
+{
+  int cpt = 0;
+  while (head->next != NULL)
+  {
+    cpt += 1;
+    head = head->next;
+  }
+  return cpt;
+}
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int x_midi;
+int y_midi;
+int press_set = 0;
+int grabbed = 0;
+int wait = 0;
+
+rect_node *rect_list;
+rect_node *deleted_rects;
+
+// If 1 theres a rect, 0 if not
+char *global_rect_table;
+
+typedef struct cairo_surfaces
+{
+  cairo_surface_t *main_surface, *seen_surface;
+} cairo_surfaces;
+
+// An null event has an id of -1 and is_on at -1
+typedef struct key_event
+{
+  int is_on;
+  int id;
+} key_event;
+
+key_event *create_event(int is_on, int id)
+{
+  key_event *new_event = malloc(sizeof(key_event));
+  new_event->is_on = is_on;
+  new_event->id = id;
+  return new_event;
+}
+
+void set_closest_rectangle()
+{
+  // First check if the square has no rectangle already
+  int new_x = x_midi % (RECT_WIDTH);
+  int new_y = y_midi % (RECT_HEIGHT);
+  x_midi -= new_x;
+  y_midi -= new_y;
+}
+
+int id_from_coordinate(int x, int y)
+{
+  int id = (y / (RECT_HEIGHT)) * MINUTE * 20 + x / (RECT_WIDTH);
+  // printf("id: %d\n", id);
+  return id;
+}
+
+int is_id_in_rectangle(rectangle *rect, int id)
+{
+  int top_id = id_from_coordinate(rect->x_ext, rect->y_ext);
+  // printf("rect->id %d , id %d , top_id %d\n", rect->id, id, top_id);
+  return id >= rect->id && id <= top_id;
+}
+
+// Gets the current event and sets the x,y possition
+gboolean ccurrent_key_click_midi(GtkWidget *da, GdkEvent *event, __attribute_maybe_unused__ gpointer user_data)
+{
+  GdkDisplay *display = gdk_display_get_default();
+  GdkSeat *seat = gdk_display_get_default_seat(display);
+  GdkDevice *device = gdk_seat_get_pointer(seat);
+  // If the double press was issued
+  // start the delete sequence
+
+  gdk_window_get_device_position(gtk_widget_get_window(GTK_WIDGET(da)), device, &x_midi, &y_midi, NULL);
+  set_closest_rectangle();
+  int id = id_from_coordinate(x_midi, y_midi);
+  switch (gdk_event_get_event_type(event))
+  {
+  case GDK_2BUTTON_PRESS:
+    rect_node *list = rect_list;
+    while (list->next)
+    {
+      list = list->next;
+      if (is_id_in_rectangle(list->value, id))
+      {
+        int top_id = id_from_coordinate(list->value->x_ext, list->value->y_ext);
+        // Liberate all the rects that it occupied
+        for (int i = list->value->id; i < top_id; i++)
+        {
+          global_rect_table[i] = 0;
+        }
+        // Delete the actuall rect
+        rect_node_delete_first_occurence(rect_list, deleted_rects, list->value->id);
+      }
+    }
+    break;
+  case GDK_BUTTON_PRESS:
+    press_set = 1;
+    // Create the rectangle if there is no rectangle at this coordinate
+    if (global_rect_table[id] == 0)
+    {
+      rectangle *new_rect = init_rectangle(x_midi, y_midi, RECT_HEIGHT, RECT_WIDTH, x_midi + RECT_WIDTH, y_midi, id);
+      rect_node_insert_beg(rect_list, new_rect);
+      global_rect_table[new_rect->id] = 1;
+    }
+    break;
+  case GDK_MOTION_NOTIFY:
+    grabbed = 1;
+    // Update the area of the rectangle if the id is unoccupied
+    if (global_rect_table[id] == 0)
+    {
+
+      rectangle *dragged_rect = rect_list->next->value;
+      // Only allow updates on the same line
+      if (x_midi != dragged_rect->x && y_midi == dragged_rect->y)
+      {
+        // No negative distance possible
+        int new_width = x_midi - dragged_rect->x;
+        if (new_width > 0)
+        {
+          dragged_rect->width = new_width;
+        }
+      }
+    }
+    break;
+  case GDK_BUTTON_RELEASE:
+    press_set = 0;
+    // If it was not dragged it was a simple release and no updates have to be made
+    // Or it was a delete event
+    if (rect_list->next != NULL)
+    {
+      rectangle *dragged_rect = rect_list->next->value;
+      int width = dragged_rect->width;
+
+      // Updtae the exterior points
+      dragged_rect->x_ext = x_midi;
+      dragged_rect->y_ext = y_midi;
+
+      if (grabbed)
+      {
+        grabbed = 0;
+        int j = 0;
+        for (int i = 0; i < width; i += RECT_WIDTH)
+        {
+          // printf("width %d blocked id %d\n", width, dragged_rect->id + j);
+          global_rect_table[dragged_rect->id + j] = 1;
+          j++;
+        }
+      }
+      else
+      {
+        // printf("width %d blocked id %d\n", width, dragged_rect->id);
+        global_rect_table[dragged_rect->id] = 1;
+      }
+    }
+    break;
+  default:
+    // printf("different\n");
+    break;
+  }
+
+  return G_SOURCE_REMOVE;
+}
+
+void on_midi_quit(__attribute_maybe_unused__ GtkWidget *widget, gpointer user_data)
+{
+  cairo_surfaces *surfaces;
+  surfaces = (cairo_surfaces *)user_data;
+  cairo_surface_destroy(surfaces->main_surface);
+  cairo_surface_destroy(surfaces->seen_surface);
+  gtk_main_quit();
+}
+
+gboolean on_configure(GtkWidget *widget, __attribute_maybe_unused__ GdkEventConfigure *event_p, gpointer user_data)
+{
+  cairo_t *cr_p;
+  cairo_surfaces *surfaces;
+
+  surfaces = (cairo_surfaces *)user_data;
+
+  if (surfaces->seen_surface)
+  {
+    cairo_surface_destroy(surfaces->seen_surface);
+  }
+
+  surfaces->seen_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SCROLL_WINDOW_HEIGHT, SCROLL_WINDOW_WIDTH);
+
+  gtk_widget_set_size_request(widget, FULL_WIDTH, FULL_HEIGHT);
+
+  cr_p = cairo_create(surfaces->seen_surface);
+  cairo_set_source_surface(cr_p, surfaces->main_surface, 0, 0);
+  cairo_paint(cr_p);
+  cairo_destroy(cr_p);
+  return FALSE;
+}
+
+// Sets up the drawing space to dynamically manage the resize
+void set_up_midi_grid(GtkWidget *widget, cairo_t *cr, double *dx, double *dy, double *clip_y1, double *clip_y2, double *clip_x1, double *clip_x2, GdkRectangle *da)
+{
+  GdkWindow *window = gtk_widget_get_window(widget);
+
+  /* Determine GtkDrawingArea dimensions */
+  gdk_window_get_geometry(window, &da->x, &da->y, &da->width, &da->height);
+
+  /* Draw on a black background */
+  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+  cairo_paint(cr);
+
+  /* Determine the data points to calculate (ie. those in the clipping zone */
+  cairo_device_to_user_distance(cr, dx, dy);
+  cairo_clip_extents(cr, clip_x1, clip_y1, clip_x2, clip_y2);
+}
+
+// Draws the grid on which the rectangles are placed
+void on_draw_midi_grid(cairo_t *cr, double dx, double clip_y2, double clip_x2)
+{
+  // Horizontal lines
+  for (size_t i = 0; i < FULL_WIDTH; i += (FULL_WIDTH / MINUTE))
+  {
+    cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+    cairo_move_to(cr, i, 0.0);
+    cairo_line_to(cr, i, clip_y2);
+    cairo_stroke(cr);
+    cairo_set_line_width(cr, dx / 4);
+    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+    for (size_t j = 0; j < (FULL_WIDTH / MINUTE); j += (FULL_WIDTH / (MINUTE * 20)))
+    {
+      cairo_move_to(cr, j + i, 0.0);
+      cairo_line_to(cr, j + i, clip_y2);
+    }
+    cairo_stroke(cr);
+  }
+
+  // vertical lines
+  for (size_t i = 0; i < FULL_HEIGHT; i += FULL_HEIGHT / NUMBER_OF_KEYS)
+  {
+    cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+    cairo_move_to(cr, 0.0, i);
+    cairo_line_to(cr, clip_x2, i);
+    cairo_stroke(cr);
+  }
+}
+
+// Draws one rectangle on the cr, with left top most corner (x,y)
+void on_draw_midi_rectangle(cairo_t *cr, int x, int y, int width, int height)
+{
+  cairo_set_source_rgb(cr, 0.2, 0.6, 0.1);
+  cairo_move_to(cr, x, y);
+  cairo_line_to(cr, x, y + height);
+  cairo_line_to(cr, x + width, y + height);
+  cairo_line_to(cr, x + width, y);
+  cairo_line_to(cr, x, y);
+  cairo_fill(cr);
+
+  cairo_set_source_rgb(cr, 0.2, 0.9, 0.5);
+
+  cairo_set_line_width(cr, 2);
+  cairo_move_to(cr, x, y);
+  cairo_line_to(cr, x, y + height);
+  cairo_line_to(cr, x + width, y + height);
+  cairo_line_to(cr, x + width, y);
+  cairo_line_to(cr, x, y);
+  cairo_stroke(cr);
+}
+
+gboolean on_draw_midi(GtkWidget *widget, cairo_t *cr, __attribute_maybe_unused__ gpointer user_data)
+{
+  GdkRectangle da; /* GtkDrawingArea size */
+  rect_node *list = rect_list;
+  gdouble dx = 4.0, dy = 4.0; /* Pixels between each point */
+  gdouble clip_x1 = 0.0, clip_y1 = 0.0, clip_x2 = 0.0, clip_y2 = 0.0;
+
+  set_up_midi_grid(widget, cr, &dx, &dy, &clip_y1, &clip_y2, &clip_x1, &clip_x2, &da);
+
+  on_draw_midi_grid(cr, dx, clip_y2, clip_x2);
+
+  while (list->next)
+  {
+    list = list->next;
+    on_draw_midi_rectangle(cr, list->value->x, list->value->y, list->value->width, list->value->height);
+  }
+  gtk_widget_queue_draw_area(widget, 0, 0, da.width, da.height);
+  return G_SOURCE_REMOVE;
+}
+
+key_event *construct_event_array()
+{
+  key_event *event_table = calloc(MINUTE * 20 * NUMBER_OF_KEYS, sizeof(key_event));
+  memset(event_table, -1, MINUTE * 20 * NUMBER_OF_KEYS * sizeof(key_event));
+  int event_index = 0;
+  for (size_t i = 0; i < MINUTE * 20; i++)
+  {
+    for (size_t j = 0; j < NUMBER_OF_KEYS; j++)
+    {
+      int id = j * MINUTE * 20 + i;
+
+      rect_node *list = rect_list;
+      while (list->next)
+      {
+        list = list->next;
+        if (id == list->value->id)
+        {
+          key_event new_event;
+          new_event.id = id;
+          new_event.is_on = 1;
+
+          event_table[event_index] = new_event;
+          event_index++;
+        }
+        // If it is the exteerior of the sound
+
+        if (id == id_from_coordinate(list->value->x_ext, list->value->y_ext))
+        {
+          key_event new_event;
+          new_event.id = id;
+          new_event.is_on = 0;
+
+          event_table[event_index] = new_event;
+          event_index++;
+        }
+      }
+    }
+    key_event new_event;
+    new_event.id = -1;
+    new_event.is_on = -1;
+    event_table[event_index] = new_event;
+    event_index++;
+  }
+  return event_table;
+}
+
+void *thread_caller(void *arg)
+{
+
+  vis_data *vs = (vis_data *)arg;
+  ud *data = vs->data;
+  while (vs->stop_thread)
+  {
+    struct timespec tim, tim2;
+    tim.tv_sec = 0;
+    tim.tv_nsec = 500000000L;
+    key_event *event_table = construct_event_array();
+    for (size_t i = 0; i < 10; i++)
+    {
+      if (event_table[i].id == -1 && event_table[i].is_on == -1)
+      {
+        if (nanosleep(&tim, &tim2) < 0)
+        {
+          printf("Nano sleep system call failed \n");
+        }
+        printf("waited\n");
+      }
+      else
+      {
+        int key_id = event_table[i].id / (MINUTE * 20);
+        printf("key_id%d\n", key_id);
+        printf("id: %d, is_on %d\n", event_table[i].id, event_table[i].is_on);
+        if (event_table[i].is_on == 1)
+        {
+          key_on(data, key_id);
+        }
+        if (event_table[i].is_on == 0)
+        {
+          key_off(data, key_id);
+        }
+      }
+    }
+    free(event_table);
+  }
+}
+
+typedef struct pth_and_ud
+{
+  pthread_t *thr;
+  ud *data;
+}pth_and_ud;
+
+snd_seq_t *midi_seq;
 GMainContext *context;
-//File names to add new basic signals
+// File names to add new basic signals
 char global_file_name[] = "visualiser/glade_signals/signal.glade";
 char global_file_name_components[] = "visualiser/glade_signals/signal_components.glade";
 
 // The nodes of the different signals
 node *nodes;
-last_events_stack* last_events;
+last_events_stack *last_events;
 
 // The current highest id
 int global_id = 0;
@@ -19,7 +627,6 @@ GtkListBox *list;
 float global_freq = 0.0;
 
 int global_page_id = 0;
-
 
 // Stops the main thread, quits the gtk
 void on_destroy(__attribute_maybe_unused__ GtkWidget *Widget, gpointer user_data)
@@ -59,11 +666,11 @@ static gboolean key_released(__attribute_maybe_unused__ GtkWidget *widget, GdkEv
   {
     data->wav_manager->loop = 0;
   }
-  else if(event->keyval == GDK_KEY_z)
+  else if (event->keyval == GDK_KEY_z)
   {
-    //Pop the last venet from the stack and insert it to nodes
-    sig_info* poped_sig = stack_pop(last_events);
-    row_create(NULL,poped_sig);
+    // Pop the last venet from the stack and insert it to nodes
+    sig_info *poped_sig = stack_pop(last_events);
+    row_create(NULL, poped_sig);
   }
   return GDK_EVENT_PROPAGATE;
 }
@@ -121,7 +728,7 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   float sig_sum = vs->attack_phase + vs->decay_phase + vs->release_phase + sust_phase;
 
   float factor;
-  if(sig_sum==0)
+  if (sig_sum == 0)
   {
     factor = clip_x2;
   }
@@ -129,7 +736,6 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   {
     factor = clip_x2 / sig_sum;
   }
-  
 
   int cpt = 0;
 
@@ -150,13 +756,12 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-
 void recorded_samples_fill(ud *data)
 {
-  float * buffer = malloc(sizeof(float)*2);
+  float *buffer = malloc(sizeof(float) * 2);
   for (size_t i = 0; i < data->fout_size; i++)
-  { 
-    if(read_from_wav(data->fout,buffer)==2)
+  {
+    if (read_from_wav(data->fout, buffer) == 2)
     {
       data->recorded_sig[i] = buffer[0];
     }
@@ -164,12 +769,10 @@ void recorded_samples_fill(ud *data)
     {
       break;
     }
-      
   }
-  
 }
 
-void fliter_param_fill(float * filter_param,vis_data * data)
+void fliter_param_fill(float *filter_param, vis_data *data)
 {
   filter_param[0] = data->low_pass_cut;
   filter_param[1] = data->high_pass_cut;
@@ -183,11 +786,11 @@ void fliter_param_fill(float * filter_param,vis_data * data)
   filter_param[9] = data->band_cut_active;
 }
 
-int filter_param_comp(float * new, float * old)
+int filter_param_comp(float *new, float *old)
 {
   for (size_t i = 0; i < 10; i++)
   {
-    if(new[i] != old[i])
+    if (new[i] != old[i])
     {
       return 1;
     }
@@ -198,74 +801,60 @@ int filter_param_comp(float * new, float * old)
 // Main loop of the app
 void run_app(vis_data *my_data)
 {
-  int argc = my_data->argc;
-  char **argv = my_data->argv;
   ud *data = my_data->data;
-  Uint8 *state = my_data->state;
-  ADSR * new_adsr = init_ADSR_envelope(my_data->attack_phase,my_data->decay_phase,my_data->release_phase,my_data->attack_amp,my_data->decay_amp,my_data->sustain_amp);
+  ADSR *new_adsr = init_ADSR_envelope(my_data->attack_phase, my_data->decay_phase, my_data->release_phase, my_data->attack_amp, my_data->decay_amp, my_data->sustain_amp);
   my_data->data->adsr = new_adsr;
 
-  float * filter_params = calloc(10,sizeof(float));
-  float * filter_params_past = calloc(10,sizeof(float));
+  float *filter_params = calloc(10, sizeof(float));
+  float *filter_params_past = calloc(10, sizeof(float));
 
   data->fout = open_WAV("Bach.wav");
   data->fout_size = findSize("Bach.wav");
-  
+
   struct pollfd *pfds;
   int npfds;
 
   init_seq();
+  connect_to_port("0");
+  midi_seq = create_port();
+  connect_ports(midi_seq);
 
-  if (parse_input(argc, argv) != -1)
-  {
-    printf("Parsing error\n");
-  }
-
-  snd_seq_t *seq = create_port();
-  int port_count = connect_ports(seq);
-
-  if (port_count > 0)
-    printf("Waiting for data.");
-  else
-    printf("Waiting for data at port %d:0.",
-           snd_seq_client_id(seq));
-  printf(" Press Ctrl+C to end.\n");
-  printf("Source  Event                  Ch  Data\n");
-
-  npfds = snd_seq_poll_descriptors_count(seq, POLLIN);
+  npfds = snd_seq_poll_descriptors_count(midi_seq, POLLIN);
   pfds = malloc(sizeof(*pfds) * npfds);
 
   while (my_data->stop_thread)
   {
-    fliter_param_fill(filter_params_past,my_data);
-    snd_seq_poll_descriptors(seq, pfds, npfds, POLLIN);
-    int p = poll(pfds, npfds, 30);
-    if( p != 0)
+    fliter_param_fill(filter_params_past, my_data);
+
+    snd_seq_poll_descriptors(midi_seq, pfds, npfds, POLLIN);
+    int p = poll(pfds, npfds, 20);
+    if (p != 0)
     {
       snd_seq_event_t *event_;
-      snd_seq_event_input(seq, &event_);
+      snd_seq_event_input(midi_seq, &event_);
       if (event_)
       {
-        dump_event(event_, state, data);
+        dump_event(event_, data);
       }
     }
     update_effects(my_data);
     // The graphic calculus slows the programm!!!
-    //Get the current page and if it is filters than do the calc!
-    if(global_page_id == 2)
+    // Get the current page and if it is filters than do the calc!
+    if (global_page_id == 3)
     {
-      fliter_param_fill(filter_params,my_data);
-      if(filter_param_comp(filter_params,filter_params_past))
+      fliter_param_fill(filter_params, my_data);
+      if (filter_param_comp(filter_params, filter_params_past))
       {
         apply_filter_to_sample(my_data, 1024);
-      } 
+      }
     }
   }
+  //Write to the last_session file
+  write_to_triton(nodes,"visualiser/last_session/last_session.triton");
 
   free(filter_params);
   free(filter_params_past);
   free(pfds);
-  
 }
 
 // Thread Function to run the main app
@@ -282,15 +871,14 @@ thread_func(gpointer user_data)
   return NULL;
 }
 
-//Tracks the current page of the app to block all the processes not involved on that particular page!
-gboolean on_switch_page(GtkWidget * note_book,__attribute_maybe_unused__ gpointer user_data)
+// Tracks the current page of the app to block all the processes not involved on that particular page!
+gboolean on_switch_page(GtkWidget *note_book, __attribute_maybe_unused__ gpointer user_data)
 {
   gint current_page = gtk_notebook_get_current_page(GTK_NOTEBOOK(note_book));
-  //printf("curr %d\n",current_page);
+  // printf("curr %d\n",current_page);
   global_page_id = current_page;
   return G_SOURCE_REMOVE;
 }
-
 
 // Dynamically draws the harmonics
 gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
@@ -316,7 +904,7 @@ gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   /* Change the transformation matrix */
   // Put the origin of the graph into the center of the image
-  cairo_translate(cr, da_parameters.width / 2, da_parameters.height/2);
+  cairo_translate(cr, da_parameters.width / 2, da_parameters.height / 2);
   cairo_scale(cr, 100, -100);
   /* Determine the data points to calculate (ie. those in the clipping zone */
   cairo_device_to_user_distance(cr, &dx, &dy);
@@ -332,22 +920,19 @@ gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   //  printf("exec y1 %f , y2 %f, dy %f\n", clip_y1, clip_y2, dy);
   /* Link each data point */
   cairo_set_source_rgba(cr, 1, 0.2, 0.2, 0.6);
-  size_t cpt =0;
-  for (i = clip_x1; i < clip_x2; i += (clip_x2 * 16  / data->fout_size ))
+  size_t cpt = 0;
+  for (i = clip_x1; i < clip_x2; i += (clip_x2 * 16 / data->fout_size))
   {
-    if(data->wav_manager->playback)
-    { 
-      
+    if (data->wav_manager->playback)
+    {
     }
 
-    if(cpt<data->fout_size)
+    if (cpt < data->fout_size)
     {
       cairo_line_to(cr, i, data->recorded_sig[cpt] * clip_y2);
     }
-    
 
-    
-    cpt+=1;
+    cpt += 1;
   }
 
   // printf("cpr:%d\n",cpt);
@@ -360,19 +945,34 @@ gboolean on_draw_recorded(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-
-
-
-
 int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 {
+
+  pthread_t thr;
+  cairo_surfaces my_data;
+  rect_list = rect_node_build_sentinel();
+  deleted_rects = rect_node_build_sentinel();
+  global_rect_table = calloc(NUMBER_OF_KEYS * MINUTE * 20, sizeof(char));
+
+  my_data.seen_surface = NULL;
+  my_data.main_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, FULL_WIDTH, FULL_HEIGHT);
+
+
+  
+
+
   // The table of threads
   GThread *thread[1];
   // Init the gtk
   gtk_init(&argc, &argv);
+
+
   // Init the node structure
   nodes = node_build_sentinel();
   last_events = last_events_stack_build_sentinel();
+
+
+
   // Init the builder
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
@@ -382,12 +982,15 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
     g_clear_error(&error);
     return 1;
   }
+
+  
+
   /*
     Record
-    
+
   */
   GtkDrawingArea *da_record = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "record_da"));
-  //g_signal_connect(G_OBJECT(da_record), "draw", G_CALLBACK(on_draw_recorded), vis_d->data);
+  // g_signal_connect(G_OBJECT(da_record), "draw", G_CALLBACK(on_draw_recorded), vis_d->data);
 
   /*
     PIANO
@@ -411,8 +1014,10 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   GtkFileChooser *my_file_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(builder, "file_load"));
   // Save Button
   GtkButton *save_file = GTK_BUTTON(gtk_builder_get_object(builder, "save_file"));
-  //Notebook
-  GtkNotebook * note_book = GTK_NOTEBOOK(gtk_builder_get_object(builder,"note_book"));
+  // Choose midi device button
+  GtkButton *choose_midi = GTK_BUTTON(gtk_builder_get_object(builder, "choose_midi"));
+  // Notebook
+  GtkNotebook *note_book = GTK_NOTEBOOK(gtk_builder_get_object(builder, "note_book"));
 
   /*
     Signal Creator Widgets
@@ -474,7 +1079,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   */
 
   // ADSR da
-  GtkDrawingArea *da = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da"));
+  GtkDrawingArea *da_adsr = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da1"));
 
   // ADSR Spin Buttons
   GtkSpinButton *attack_phase = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "attack_phase_control"));
@@ -486,6 +1091,17 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   GtkScale *attack_top = GTK_SCALE(gtk_builder_get_object(builder, "attack_top"));
   GtkScale *decay_bot = GTK_SCALE(gtk_builder_get_object(builder, "decay_bot"));
   GtkScale *sustain = GTK_SCALE(gtk_builder_get_object(builder, "sustain"));
+
+  /*
+
+  MIDI play
+
+  */
+
+  //GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, "scrolled_window"));
+  GtkDrawingArea *da_midi_player = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da_midi_play"));
+  GtkEventBox *midi_event = GTK_EVENT_BOX(gtk_builder_get_object(builder, "midi_event"));
+  GtkButton *play_midi = GTK_BUTTON(gtk_builder_get_object(builder, "play_midi"));
 
   // Unreference the builder, since all the wanted object were built
   g_object_unref(builder);
@@ -505,10 +1121,12 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   g_signal_connect(my_file_chooser, "selection-changed", G_CALLBACK(update_preview_cb), NULL);
   // Save a current configuration
   g_signal_connect(G_OBJECT(save_file), "clicked", G_CALLBACK(on_save_state), NULL);
+  // Set the cureent chosen midi device
+  g_signal_connect(G_OBJECT(choose_midi), "clicked", G_CALLBACK(midi_device_chooser_create), NULL);
   // Track the recording functionalities
   g_signal_connect(G_OBJECT(window), "key_release_event", G_CALLBACK(key_released), (gpointer)vis_d->data);
-  //Track the current page for optimisation
-  g_signal_connect(G_OBJECT(note_book),"notify",G_CALLBACK(on_switch_page),NULL);
+  // Track the current page for optimisation
+  g_signal_connect(G_OBJECT(note_book), "notify", G_CALLBACK(on_switch_page), NULL);
   // Destroy signal
   g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(on_destroy), &vis_d->stop_thread);
 
@@ -560,26 +1178,24 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 
   // ADSR signals
 
-  adsr_vs_and_param * attack_phase_param = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *attack_phase_param = malloc(sizeof(adsr_vs_and_param));
   attack_phase_param->param_index = 0;
   attack_phase_param->vs = vis_d;
-  adsr_vs_and_param * decay_phase_param = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *decay_phase_param = malloc(sizeof(adsr_vs_and_param));
   decay_phase_param->param_index = 1;
   decay_phase_param->vs = vis_d;
-  adsr_vs_and_param * release_phase_param = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *release_phase_param = malloc(sizeof(adsr_vs_and_param));
   release_phase_param->param_index = 2;
   release_phase_param->vs = vis_d;
-  adsr_vs_and_param * attack_amp = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *attack_amp = malloc(sizeof(adsr_vs_and_param));
   attack_amp->param_index = 3;
   attack_amp->vs = vis_d;
-  adsr_vs_and_param * decay_amp = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *decay_amp = malloc(sizeof(adsr_vs_and_param));
   decay_amp->param_index = 4;
   decay_amp->vs = vis_d;
-  adsr_vs_and_param * sustain_amp = malloc(sizeof(adsr_vs_and_param));
+  adsr_vs_and_param *sustain_amp = malloc(sizeof(adsr_vs_and_param));
   sustain_amp->param_index = 5;
   sustain_amp->vs = vis_d;
-
-
 
   g_signal_connect(G_OBJECT(attack_phase), "value_changed", G_CALLBACK(on_adsr_change_param), attack_phase_param);
   g_signal_connect(G_OBJECT(decay_phase), "value_changed", G_CALLBACK(on_adsr_change_param), decay_phase_param);
@@ -590,7 +1206,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   g_signal_connect(G_OBJECT(decay_bot), "value_changed", G_CALLBACK(on_adsr_change_param), sustain_amp);
   g_signal_connect(G_OBJECT(sustain), "value_changed", G_CALLBACK(on_adsr_change_param), sustain_amp);
 
-  g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(on_adsr_draw), vis_d);
+  g_signal_connect(G_OBJECT(da_adsr), "draw", G_CALLBACK(on_adsr_draw), vis_d);
 
   int sine_file = 0;
   int trig_file = 1;
@@ -609,15 +1225,34 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   int full_sig_id = -1;
   g_signal_connect(G_OBJECT(full_sig), "draw", G_CALLBACK(on_draw_created_or_full_signal), &full_sig_id);
 
+  /*
+
+  MIDI Play
+
+  */
+  pth_and_ud *data_to_midi = malloc(sizeof(pth_and_ud));
+  data_to_midi->data = vis_d->data;
+  data_to_midi->thr = &thr;
+
+  g_signal_connect(G_OBJECT(da_midi_player), "configure-event", G_CALLBACK(on_configure), &my_data);
+  g_signal_connect(G_OBJECT(da_midi_player), "draw", G_CALLBACK(on_draw_midi), NULL);
+  g_signal_connect(G_OBJECT(midi_event), "event", G_CALLBACK(ccurrent_key_click_midi), NULL);
+  // g_signal_connect(G_OBJECT(play_midi), "clicked", G_CALLBACK(on_play_midi), data_to_midi);
+
   context = g_main_context_default();
 
   thread[0] = g_thread_new(NULL, thread_func, vis_d);
+  // pthread_create(&thr, NULL, thread_caller, vis_d);
 
   gtk_widget_show_all(GTK_WIDGET(window));
+
+  //Prompt The last session file
+  on_start_app_last_session_prompt();
 
   gtk_main();
 
   g_thread_join(thread[0]);
+  // pthread_join(thr, NULL);
 
   free(band_cut_data_low);
   free(band_cut_data_high);
@@ -631,5 +1266,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   free(decay_phase_param);
   free(release_phase_param);
 
+
+  free(data_to_midi);
   return 0;
 }
