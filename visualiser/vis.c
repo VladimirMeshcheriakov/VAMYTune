@@ -605,7 +605,7 @@ typedef struct pth_and_ud
 {
   pthread_t *thr;
   ud *data;
-}pth_and_ud;
+} pth_and_ud;
 
 snd_seq_t *midi_seq;
 GMainContext *context;
@@ -670,7 +670,20 @@ static gboolean key_released(__attribute_maybe_unused__ GtkWidget *widget, GdkEv
   {
     // Pop the last venet from the stack and insert it to nodes
     sig_info *poped_sig = stack_pop(last_events);
-    row_create(NULL, poped_sig);
+    if (poped_sig != NULL)
+    {
+      poped_sig->id = global_id;
+      // print_sine_info(poped_sig);
+      node_insert_end(nodes, poped_sig);
+      if (poped_sig->type < 4)
+      {
+        row_create(NULL, poped_sig);
+      }
+      else
+      {
+        row_create_composite(NULL, poped_sig);
+      }
+    }
   }
   return GDK_EVENT_PROPAGATE;
 }
@@ -849,8 +862,8 @@ void run_app(vis_data *my_data)
       }
     }
   }
-  //Write to the last_session file
-  write_to_triton(nodes,"visualiser/last_session/last_session.triton");
+  // Write to the last_session file
+  write_to_triton(nodes, "visualiser/last_session/last_session.triton");
 
   free(filter_params);
   free(filter_params_past);
@@ -957,21 +970,14 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   my_data.seen_surface = NULL;
   my_data.main_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, FULL_WIDTH, FULL_HEIGHT);
 
-
-  
-
-
   // The table of threads
   GThread *thread[1];
   // Init the gtk
   gtk_init(&argc, &argv);
 
-
   // Init the node structure
   nodes = node_build_sentinel();
   last_events = last_events_stack_build_sentinel();
-
-
 
   // Init the builder
   GtkBuilder *builder = gtk_builder_new();
@@ -982,8 +988,6 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
     g_clear_error(&error);
     return 1;
   }
-
-  
 
   /*
     Record
@@ -1098,7 +1102,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 
   */
 
-  //GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, "scrolled_window"));
+  // GtkScrolledWindow *scrolled_window = GTK_SCROLLED_WINDOW(gtk_builder_get_object(builder, "scrolled_window"));
   GtkDrawingArea *da_midi_player = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da_midi_play"));
   GtkEventBox *midi_event = GTK_EVENT_BOX(gtk_builder_get_object(builder, "midi_event"));
   GtkButton *play_midi = GTK_BUTTON(gtk_builder_get_object(builder, "play_midi"));
@@ -1246,7 +1250,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 
   gtk_widget_show_all(GTK_WIDGET(window));
 
-  //Prompt The last session file
+  // Prompt The last session file
   on_start_app_last_session_prompt();
 
   gtk_main();
@@ -1265,7 +1269,6 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   free(attack_phase_param);
   free(decay_phase_param);
   free(release_phase_param);
-
 
   free(data_to_midi);
   return 0;

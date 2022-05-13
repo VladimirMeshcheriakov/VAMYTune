@@ -26,6 +26,7 @@ all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_
 
 all_params_and_id *prepare_all_params(int *id)
 {
+  printf("%d\n",*id);
   id_and_param *id_amp = create_id_with_param(id, 0);
   id_and_param *id_freq = create_id_with_param(id, 1);
   id_and_param *id_composite = create_id_with_param(id, 2);

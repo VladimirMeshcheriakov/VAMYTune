@@ -5,7 +5,9 @@
 void row_create(__attribute_maybe_unused__  GtkWidget *button, gpointer userdata)
 {
   sig_info *sig_data = (sig_info *)userdata;
+
   print_sine_info(sig_data);
+
   GtkBuilder *builder = gtk_builder_new();
   GError *error = NULL;
   if (gtk_builder_add_from_file(builder, global_file_name, &error) == 0)
@@ -25,6 +27,7 @@ void row_create(__attribute_maybe_unused__  GtkWidget *button, gpointer userdata
   GtkToggleButton *mute = GTK_TOGGLE_BUTTON(gtk_builder_get_object(builder, "mute"));
   GtkLabel *name_label = GTK_LABEL(gtk_builder_get_object(builder, "main_label"));
 
+  
   all_params_and_id *all_params = prepare_all_params(&sig_data->id);
 
   switch (sig_data->type)

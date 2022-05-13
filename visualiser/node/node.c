@@ -452,7 +452,7 @@ sig_info *stack_pop(last_events_stack *head)
     if (head->next == NULL)
     {
         fprintf(stderr, "Stack is empty!\n");
-        return init_null_struct();
+        return NULL;
     }
     else
     {
