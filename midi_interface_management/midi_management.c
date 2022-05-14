@@ -4,6 +4,8 @@ static snd_seq_t *seq;
 static int port_count = 1;
 static snd_seq_addr_t *ports;
 
+
+
 /* prints an error message to stderr, and dies */
 void fatal(const char *msg, ...)
 {

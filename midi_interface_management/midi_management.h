@@ -14,6 +14,8 @@
 #define MIDI_MANAGEMENT_H
 
 
+
+
 void fatal(const char *msg, ...);
 void check_mem(void *p);
 void check_snd(const char *operation, int err);

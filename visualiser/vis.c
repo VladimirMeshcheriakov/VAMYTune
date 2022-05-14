@@ -16,7 +16,7 @@
 #define MINUTE 60
 
 #define FULL_WIDTH 24000
-#define FULL_HEIGHT 12700
+#define FULL_HEIGHT 1270
 
 #define RECT_HEIGHT FULL_HEIGHT / NUMBER_OF_KEYS
 #define RECT_WIDTH FULL_WIDTH / (MINUTE * 20)
@@ -30,6 +30,7 @@ typedef struct rectangle
   int x_ext;
   int y_ext;
   int id;
+  int id_ext;
 } rectangle;
 
 typedef struct rect_node
@@ -48,6 +49,7 @@ rectangle *init_null_rectangle()
   new_rectangle->x_ext = 0;
   new_rectangle->y_ext = 0;
   new_rectangle->id = -1;
+  new_rectangle->id_ext = -1;
   return new_rectangle;
 }
 
@@ -61,6 +63,14 @@ rectangle *init_rectangle(int x, int y, int height, int width, int x_ext, int y_
   new_rectangle->x_ext = x_ext;
   new_rectangle->y_ext = y_ext;
   new_rectangle->id = id;
+  new_rectangle->id_ext = id_from_coordinate(x_ext, y_ext);
+  return new_rectangle;
+}
+
+rectangle *init_rectangle_from_press(int key_id, ud *data)
+{
+  rectangle *new_rectangle = malloc(sizeof(rectangle));
+
   return new_rectangle;
 }
 
@@ -367,7 +377,7 @@ gboolean ccurrent_key_click_midi(GtkWidget *da, GdkEvent *event, __attribute_may
       // Updtae the exterior points
       dragged_rect->x_ext = x_midi;
       dragged_rect->y_ext = y_midi;
-
+      int id_ext = id_from_coordinate(x_midi, y_midi);
       if (grabbed)
       {
         grabbed = 0;
@@ -515,90 +525,123 @@ gboolean on_draw_midi(GtkWidget *widget, cairo_t *cr, __attribute_maybe_unused__
   return G_SOURCE_REMOVE;
 }
 
-key_event *construct_event_array()
+/*
+
+
+MIDI time start
+
+
+*/
+
+double start_midi_rec = 0;
+
+// Issued on A PRESS OF THE KEY!!!
+rectangle *init_rect_from_key(int id_note, ud *data)
 {
-  key_event *event_table = calloc(MINUTE * 20 * NUMBER_OF_KEYS, sizeof(key_event));
-  memset(event_table, -1, MINUTE * 20 * NUMBER_OF_KEYS * sizeof(key_event));
-  int event_index = 0;
+  rectangle *new = malloc(sizeof(rectangle));
+  // In seconds
+  double placement_time = data->time_management->actual_time - start_midi_rec;
+
+  int x = placement_time * 20 * RECT_WIDTH;
+  int y = id_note * RECT_HEIGHT;
+
+  int new_x = x % (RECT_WIDTH);
+  int new_y = y % (RECT_HEIGHT);
+  x -= new_x;
+  y -= new_y;
+
+  int id = id_from_coordinate(x, y);
+  rectangle *new_rect = init_rectangle(x, y, RECT_HEIGHT, RECT_WIDTH, x + RECT_WIDTH, y, id);
+  rect_node_insert_beg(rect_list, new_rect);
+  global_rect_table[new_rect->id] = 1;
+}
+
+// Issued on A RELEASE OF A KEY
+rectangle *release_rect_from_key(int id_note, ud *data)
+{
+  double placement_time = data->time_management->actual_time - start_midi_rec;
+  rect_node *rect_run = rect_list;
+  while (rect_run->next != NULL)
+  {
+    rect_run = rect_run->next;
+    int note_id = rect_run->value->id / (MINUTE * 20);
+    if (note_id == id_note)
+    {
+      int x = placement_time * 20 * RECT_WIDTH;
+
+      int new_x = x % (RECT_WIDTH);
+      x -= new_x;
+      int id = id_from_coordinate(x, rect_run->value->y);
+      rect_run->value->x_ext = x;
+      rect_run->value->y_ext = rect_run->value->y;
+      rect_run->value->width = RECT_WIDTH * (id - rect_run->value->id);
+      break;
+    }
+  }
+}
+
+void record_event_array(GtkWidget *widget, gpointer user_data)
+{
+  ud *data = (ud *)user_data;
+  start_midi_rec = data->time_management->actual_time;
+}
+
+void construct_event_array(GtkWidget *widget, gpointer user_data)
+{
+  ud *data = (ud *)user_data;
+  double global_snap = data->time_management->actual_time + 30;
   for (size_t i = 0; i < MINUTE * 20; i++)
   {
+    int *id_arr = calloc(NUMBER_OF_KEYS, sizeof(int));
     for (size_t j = 0; j < NUMBER_OF_KEYS; j++)
     {
       int id = j * MINUTE * 20 + i;
-
+      int note_id = id / (MINUTE * 20);
       rect_node *list = rect_list;
       while (list->next)
       {
         list = list->next;
         if (id == list->value->id)
         {
-          key_event new_event;
-          new_event.id = id;
-          new_event.is_on = 1;
-
-          event_table[event_index] = new_event;
-          event_index++;
+          id_arr[note_id] = 2;
         }
         // If it is the exteerior of the sound
-
         if (id == id_from_coordinate(list->value->x_ext, list->value->y_ext))
         {
-          key_event new_event;
-          new_event.id = id;
-          new_event.is_on = 0;
-
-          event_table[event_index] = new_event;
-          event_index++;
+          id_arr[note_id] = 1;
         }
       }
     }
-    key_event new_event;
-    new_event.id = -1;
-    new_event.is_on = -1;
-    event_table[event_index] = new_event;
-    event_index++;
+    double snap = data->time_management->actual_time;
+    // One line of notes is done
+    while (snap + 0.05 > data->time_management->actual_time && global_snap > data->time_management->actual_time)
+    {
+      for (size_t i = 0; i < 127; i++)
+      {
+        if (id_arr[i] == 2)
+        {
+          key_on(data, i);
+          data->all_keys->keys[i] = 1;
+        }
+        if (id_arr[i] == 1)
+        {
+          key_off(data, i);
+          data->all_keys->keys[i] = 0;
+        }
+      }
+    }
+    free(id_arr);
   }
-  return event_table;
+  
 }
 
-void *thread_caller(void *arg)
+void empty_event_array(GtkWidget *widget, gpointer user_data)
 {
-
-  vis_data *vs = (vis_data *)arg;
-  ud *data = vs->data;
-  while (vs->stop_thread)
+  for (size_t i = 0; i < 20*MINUTE*NUMBER_OF_KEYS; i++)
   {
-    struct timespec tim, tim2;
-    tim.tv_sec = 0;
-    tim.tv_nsec = 500000000L;
-    key_event *event_table = construct_event_array();
-    for (size_t i = 0; i < 10; i++)
-    {
-      if (event_table[i].id == -1 && event_table[i].is_on == -1)
-      {
-        if (nanosleep(&tim, &tim2) < 0)
-        {
-          printf("Nano sleep system call failed \n");
-        }
-        printf("waited\n");
-      }
-      else
-      {
-        int key_id = event_table[i].id / (MINUTE * 20);
-        printf("key_id%d\n", key_id);
-        printf("id: %d, is_on %d\n", event_table[i].id, event_table[i].is_on);
-        if (event_table[i].is_on == 1)
-        {
-          key_on(data, key_id);
-        }
-        if (event_table[i].is_on == 0)
-        {
-          key_off(data, key_id);
-        }
-      }
-    }
-    free(event_table);
+    rect_node_delete_first_occurence(rect_list,deleted_rects,i);
   }
+  
 }
 
 typedef struct pth_and_ud
@@ -847,7 +890,31 @@ void run_app(vis_data *my_data)
       snd_seq_event_input(midi_seq, &event_);
       if (event_)
       {
-        dump_event(event_, data);
+        switch (event_->type)
+        {
+        case SND_SEQ_EVENT_NOTEON:
+          if (event_->data.note.velocity)
+          {
+            data->all_keys->keys[(int)event_->data.note.note] = 1;
+            key_on(data, (int)event_->data.note.note);
+            init_rect_from_key((int)event_->data.note.note, data);
+            printf("On %d\n", (int)event_->data.note.note);
+          }
+          else
+          {
+            data->all_keys->keys[(int)event_->data.note.note] = 0;
+            key_off(data, (int)event_->data.note.note);
+            release_rect_from_key((int)event_->data.note.note, data);
+            printf("Off %d\n", (int)event_->data.note.note);
+          }
+          break;
+        case SND_SEQ_EVENT_NOTEOFF:
+          data->all_keys->keys[(int)event_->data.note.note] = 0;
+          key_off(data, (int)event_->data.note.note);
+          release_rect_from_key((int)event_->data.note.note, data);
+          printf("Off %d\n", (int)event_->data.note.note);
+          break;
+        }
       }
     }
     update_effects(my_data);
@@ -864,7 +931,7 @@ void run_app(vis_data *my_data)
   }
   // Write to the last_session file
   write_to_triton(nodes, "visualiser/last_session/last_session.triton");
-
+  rect_node_print(rect_list);
   free(filter_params);
   free(filter_params_past);
   free(pfds);
@@ -1106,6 +1173,8 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   GtkDrawingArea *da_midi_player = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "da_midi_play"));
   GtkEventBox *midi_event = GTK_EVENT_BOX(gtk_builder_get_object(builder, "midi_event"));
   GtkButton *play_midi = GTK_BUTTON(gtk_builder_get_object(builder, "play_midi"));
+  GtkButton *record_midi = GTK_BUTTON(gtk_builder_get_object(builder, "record_midi"));
+  GtkButton *eraise_midi = GTK_BUTTON(gtk_builder_get_object(builder,"eraise_midi"));
 
   // Unreference the builder, since all the wanted object were built
   g_object_unref(builder);
@@ -1241,7 +1310,9 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
   g_signal_connect(G_OBJECT(da_midi_player), "configure-event", G_CALLBACK(on_configure), &my_data);
   g_signal_connect(G_OBJECT(da_midi_player), "draw", G_CALLBACK(on_draw_midi), NULL);
   g_signal_connect(G_OBJECT(midi_event), "event", G_CALLBACK(ccurrent_key_click_midi), NULL);
-  // g_signal_connect(G_OBJECT(play_midi), "clicked", G_CALLBACK(on_play_midi), data_to_midi);
+  g_signal_connect(G_OBJECT(play_midi), "clicked", G_CALLBACK(construct_event_array), vis_d->data);
+  g_signal_connect(G_OBJECT(record_midi), "clicked", G_CALLBACK(record_event_array), vis_d->data);
+  g_signal_connect(G_OBJECT(eraise_midi), "clicked", G_CALLBACK(empty_event_array), vis_d->data);
 
   context = g_main_context_default();
 
