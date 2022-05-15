@@ -30,5 +30,6 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, gpointer data);
 void load_from_triton(const char *uri, int uri_or_path);
 void write_to_triton(node *nodes, const char *name);
 gboolean on_save_state(__attribute_maybe_unused__ GtkButton *a_button);
+gboolean update_new_wav_file(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data);
 
 #endif 

@@ -119,18 +119,21 @@ void dump_event(const snd_seq_event_t *ev, ud *data)
         {
             data->all_keys->keys[(int)ev->data.note.note] = 1;
             key_on(data, (int)ev->data.note.note);
+            init_rect_from_key((int)ev->data.note.note, data);
             printf("On %d\n", (int)ev->data.note.note);
         }
         else
         {
             data->all_keys->keys[(int)ev->data.note.note] = 0;
             key_off(data, (int)ev->data.note.note);
+            release_rect_from_key((int)ev->data.note.note, data);
             printf("Off %d\n", (int)ev->data.note.note);
         }
         break;
     case SND_SEQ_EVENT_NOTEOFF:
         data->all_keys->keys[(int)ev->data.note.note] = 0;
         key_off(data, (int)ev->data.note.note);
+        release_rect_from_key((int)ev->data.note.note, data);
         printf("Off %d\n", (int)ev->data.note.note);
         break;
     }

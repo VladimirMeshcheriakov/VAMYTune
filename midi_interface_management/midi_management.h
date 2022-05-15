@@ -8,6 +8,7 @@
 #include <alsa/asoundlib.h>
 #include <SDL2/SDL.h>
 #include "../note_state_utils/note_state_utils.h"
+#include "../visualiser/midi_record_vis/midi_record_vis.h"
 #include "../userdata/userdata.h"
 
 #ifndef MIDI_MANAGEMENT_H

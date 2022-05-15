@@ -72,12 +72,11 @@ void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
 
     gtk_run_app(data,argc, argv);
 
-    fclose(data->data->fout);
-    
-    if (data->data->wav_manager->recorded_samples)
+    if(data->data->fout != NULL)
     {
-        record(data->data->wav_manager->recorded_samples, data->data->fstream->array, "Bach.wav", "wb");
+        fclose(data->data->fout);
     }
+    
 
     stop_app(audio_device_id, data->data);
 }

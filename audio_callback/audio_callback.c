@@ -29,19 +29,16 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
         // Set the actual time in the us_d
         us_d->data->time_management->actual_time = time;
         // If playback activated
-        
 
         // Call the function that calculates the signal outhput at the current time and save the signal to the sig
         float val = signal_treat(volume, us_d->data);
-        //float val = create_signal(volume,time,440);
-        if (us_d->data->wav_manager->playback && (us_d->data->fout_size > us_d->data->wav_manager->played_samples + 44))
+
+        if (us_d->data->wav_manager->playback && read_from_wav(us_d->data)==2)
         {
-            read_from_wav(us_d->data->fout,us_d->data->wav_manager->playback_buffer);
-            // printf("File_size %ld: Sample_size_in_bytes: %ld \n",us_d->fout_size ,us_d->wav_manager->played_samples);
             val += us_d->data->wav_manager->playback_buffer[0];
-            us_d->data->wav_manager->played_samples += 8;
         }
 
+        /*
         if (us_d->data->wav_manager->loop)
         {
             if((us_d->data->wav_manager->played_samples)%(int)((STOP-START)*BYTES_PER_SECOND) == 0 )
@@ -52,7 +49,7 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
             val += us_d->data->wav_manager->playback_buffer[0];
             us_d->data->wav_manager->played_samples += 8;
         }
-
+        */
         // If recording
         if (us_d->data->wav_manager->record)
         {

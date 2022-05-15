@@ -35,6 +35,8 @@ typedef struct
     WavManagement * wav_manager;
 
     // Pointer to the file from which the data is read
+    const char * wav_file_name;
+    
     FILE * fout;
     // The size of the file
     uint64_t fout_size;

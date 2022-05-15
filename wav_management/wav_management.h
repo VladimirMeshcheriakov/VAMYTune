@@ -15,6 +15,8 @@ typedef struct
     uint64_t played_samples;
     // 1 to set the record 0 to unset
     int record;
+    // 1 to signify that a recording was done, 0 that none has been done
+    int record_done;
     // 1 to set playback, 0 to unset
     int playback;
     // 1 to set loop, 
@@ -23,6 +25,7 @@ typedef struct
     double loop_start;
     //End of loop
     double loop_end;
+    
 }WavManagement;
 
 //Init a wav management struct instance

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "list_node_adder.h": "c",
-        "signal_creator_utils.h": "c"
+        "signal_creator_utils.h": "c",
+        "system_error": "c"
     }
 }

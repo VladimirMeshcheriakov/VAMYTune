@@ -232,6 +232,7 @@ void load_from_triton(const char *uri, int uri_or_path)
 gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data)
 {
   const char *uri = gtk_file_chooser_get_uri(file_chooser);
+  
   printf("%s\n", uri);
   if (uri == NULL)
   {
@@ -239,6 +240,21 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
     return G_SOURCE_REMOVE;
   }
   load_from_triton(uri,0);
+
+  return G_SOURCE_REMOVE;
+}
+
+gboolean update_new_wav_file(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data)
+{
+  const char *uri = gtk_file_chooser_get_filename(file_chooser);
+  ud* us_d = (ud*) data;
+  printf("%s\n", uri);
+  if (uri == NULL)
+  {
+    g_print("uri null\n");
+    return G_SOURCE_REMOVE;
+  }
+  set_new_working_wav_file(data,uri);
 
   return G_SOURCE_REMOVE;
 }
