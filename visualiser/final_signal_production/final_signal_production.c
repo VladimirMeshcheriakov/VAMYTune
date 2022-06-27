@@ -46,8 +46,21 @@ void global_signal_drawing()
   }
 }
 
+void update_current_note_index(unsigned short freq, unsigned short * indexes)
+{
+  if(indexes[freq]+freq < 44100)
+  {
+    indexes[freq] += freq;
+  }
+  else
+  {
+    indexes[freq] += freq;
+    indexes[freq] -= 44100;
+  }
+}
+
 // Calculates the global signal
-float global_signal(float volume, double time, float freq)
+float global_signal(float volume, float freq)
 {
   float he = 0;
   node *id_node = nodes->next;
@@ -56,9 +69,9 @@ float global_signal(float volume, double time, float freq)
     sig_info *vs = id_node->value;
     if (!vs->mute)
     {
-      he += instance_signal(volume, vs, time, freq);
+      update_current_note_index((unsigned short)freq,vs->current_index);
+      he += volume * vs->ewt[vs->current_index[(unsigned short)freq]];
     }
-
     id_node = id_node->next;
   }
   return he;
@@ -73,8 +86,7 @@ void apply_filter_to_sample(vis_data *data, size_t size)
 
   for (size_t i = 0; i < 1024; i++)
   {
-    double time = (double)i / 44100.0;
-    float val = global_signal(0.6, time, 440);
+    float val = global_signal(0.6,  440);
     buf[i] = val;
     rep[i] = val;
   }
@@ -115,7 +127,7 @@ float signal_treat(float volume, ud *data)
   {
     if (data->all_keys->keys[i] || (data->time_management->time_table[i]->release_stage && (data->all_keys->effects[i] > 0.0)))
     {
-      val += data->all_keys->effects[i] * global_signal(volume, data->time_management->actual_time,  piano_note_to_freq(i));
+      val += data->all_keys->effects[i] * global_signal(volume,  piano_note_to_freq(i));
     }
     else
     {

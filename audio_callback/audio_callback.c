@@ -58,14 +58,19 @@ void audio_callback(void *userdata, uint8_t *stream, int len)
             us_d->data->wav_manager->recorded_samples += 1;
         }
         us_d->data->sig[sid] = val;
+        //fstream[2 * sid + 0] = val; /* L */
+        //fstream[2 * sid + 1] = val; /* R */
     }
+    
     apply_filter_to_buffer(us_d,1024);
     for (int sid = 0; sid < (len / 8); ++sid)
     {
-        fstream[2 * sid + 0] = us_d->data->filtered[sid]; /* L */
-        fstream[2 * sid + 1] = us_d->data->filtered[sid]; /* R */
+        fstream[2 * sid + 0] = us_d->data->filtered[sid];
+        fstream[2 * sid + 1] = us_d->data->filtered[sid]; 
         // printf("time:%f, us_d %f\n",time,val);
     }
+
+    
     // Increment the number of samples played
     *samples_played += (len / 8);
 }

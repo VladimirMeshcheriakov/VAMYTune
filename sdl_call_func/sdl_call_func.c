@@ -72,7 +72,7 @@ void init_run_app(vis_data *data, void *audio_callback, int argc, char *argv[])
 
     gtk_run_app(data,argc, argv);
 
-    if(data->data->fout != NULL)
+    if(data->data->fout != NULL && data->data->fout_size > 0)
     {
         fclose(data->data->fout);
     }

@@ -40,7 +40,10 @@ sig_info *init_null_struct()
     sine_data->id = -1;
     sine_data->mute = 0;
     sine_data->inverse = 0;
+    sine_data->current_index = 0;
     sine_data->signal = calloc(1024,sizeof(float));
+    sine_data->ewt = calloc(44100,sizeof(float));
+    sine_data->current_index = calloc(44100,sizeof(unsigned short));
     return sine_data;
 }
 

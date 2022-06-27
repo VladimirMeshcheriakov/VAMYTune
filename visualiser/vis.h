@@ -17,7 +17,7 @@
 
 
 int gtk_run_app(vis_data *vis_d, int argc, char **argv);
-float global_signal(float volume,double time, float freq);
+float global_signal(float volume, float freq);
 float instance_signal(float volume,sig_info *vs, double time, float freq);
 float signal_treat(float volume, ud *data);
 #endif 

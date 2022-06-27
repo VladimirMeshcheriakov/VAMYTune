@@ -13,7 +13,7 @@ uint64_t findSize(const char *file_name);
 FILE *open_WAV(const char *filename);
 int read_from_wav(ud * data);
 void read_from_sec(FILE * fout,uint64_t file_size, double sec);
-void loop_between(const char * filename, double start, double end, float * sound );
+void loop_between(const char * filename, double start, double end);
 void set_new_working_wav_file(ud *data, const char *file_name);
 void create(const char * file_name,const char *type);
 

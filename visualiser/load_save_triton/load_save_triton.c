@@ -160,7 +160,7 @@ void write_to_triton(node *nodes, const char *name)
   fclose(file);
 }
 
-void load_from_triton(const char *uri, int uri_or_path)
+int load_from_triton(const char *uri, int uri_or_path)
 {
   GFile *file;
   if (uri_or_path)
@@ -189,15 +189,15 @@ void load_from_triton(const char *uri, int uri_or_path)
     return G_SOURCE_REMOVE;
   }
   size_t data_size = 0;
-  char *pointer = g_bytes_get_data(file_bytes, &data_size);
+  const char *pointer = g_bytes_get_data(file_bytes, &data_size);
   if (pointer == NULL)
   {
     g_print("pointer null\n");
     return G_SOURCE_REMOVE;
   }
   signal_params *params = init_signal_params();
-  find_scopes(pointer, data_size, params);
-  free(pointer);
+  find_scopes((char*)pointer, data_size, params);
+  free((char*)pointer);
   node *tmp = params->signals;
   params->signals = params->signals->next;
   while (params->signals != NULL)
@@ -227,6 +227,7 @@ void load_from_triton(const char *uri, int uri_or_path)
   node_free(tmp);
   free(params);
   g_object_unref(file);
+  return G_SOURCE_REMOVE;
 }
 
 gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unused__ gpointer data)
@@ -240,7 +241,6 @@ gboolean update_preview_cb(GtkFileChooser *file_chooser, __attribute_maybe_unuse
     return G_SOURCE_REMOVE;
   }
   load_from_triton(uri,0);
-
   return G_SOURCE_REMOVE;
 }
 
@@ -254,15 +254,15 @@ gboolean update_new_wav_file(GtkFileChooser *file_chooser, __attribute_maybe_unu
     g_print("uri null\n");
     return G_SOURCE_REMOVE;
   }
-  set_new_working_wav_file(data,uri);
+  set_new_working_wav_file(us_d,uri);
 
   return G_SOURCE_REMOVE;
 }
 
-void on_save_file(GtkWidget *widget, __attribute_maybe_unused__ gpointer data)
+void on_save_file(__attribute_maybe_unused__ GtkWidget *widget, __attribute_maybe_unused__ gpointer data)
 {
   GtkEntry *entry = (GtkEntry *)data;
-  GtkWidget *parent = gtk_widget_get_parent(entry);
+  GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(entry));
   parent = gtk_widget_get_parent(parent);
   parent = gtk_widget_get_parent(parent);
   const gchar *text = gtk_entry_get_text(GTK_ENTRY(entry));
@@ -270,7 +270,7 @@ void on_save_file(GtkWidget *widget, __attribute_maybe_unused__ gpointer data)
   gtk_widget_destroy(GTK_WIDGET(parent));
 }
 
-void on_cancel_file(GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
+void on_cancel_file(__attribute_maybe_unused__ GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
 {
   GtkDialog *dialog = (GtkDialog *)user_data;
   gtk_widget_destroy(GTK_WIDGET(dialog));

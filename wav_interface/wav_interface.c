@@ -64,7 +64,6 @@ void create(const char * file_name,const char *type)
     if (fout == NULL)
     {
         printf("ERROR: Cannot open the file: %s\n", file_name);
-        return false;
     }
 
     file_format_header hdr;
@@ -77,10 +76,7 @@ void create(const char * file_name,const char *type)
     {
         printf("ERROR: Uanble to write the WAV header\n");
         fclose(fout);
-        return false;
     }
-
-
     fclose(fout);
 }
 
@@ -190,8 +186,9 @@ void read_from_sec(FILE *fout, uint64_t file_size, double sec)
 
 /*
     Opens a file and does a loop playback on it (start to end)
+    !DOES NOT WORK
 */
-void loop_between(const char *filename, double start, double end, float *sound)
+void loop_between(const char *filename, double start, double end)
 {
     if (start > end)
     {
@@ -224,10 +221,12 @@ void loop_between(const char *filename, double start, double end, float *sound)
     }
     // Set the read possition to offset
     fseek(fout, new_playback_byte_start, SEEK_SET);
+    /*
     while (ftell(fout) < new_playback_byte_end)
     {
         // read_from_wav(fout,sound);
     }
+    */
     fclose(fout);
 }
 

@@ -180,21 +180,6 @@ gboolean on_adsr_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-void recorded_samples_fill(ud *data)
-{
-  float *buffer = malloc(sizeof(float) * 2);
-  for (size_t i = 0; i < data->fout_size; i++)
-  {
-    if (read_from_wav(data) == 2)
-    {
-      data->recorded_sig[i] = buffer[0];
-    }
-    else
-    {
-      break;
-    }
-  }
-}
 
 void fliter_param_fill(float *filter_param, vis_data *data)
 {
@@ -373,7 +358,7 @@ typedef struct widget_and_data
   ud **data;
 } widget_and_data;
 
-void on_open_file_wav(GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
+void on_open_file_wav(__attribute_maybe_unused__ GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
 {
   widget_and_data *wd = (widget_and_data *)user_data;
   GtkEntry *entry = wd->entry;
@@ -386,7 +371,7 @@ void on_open_file_wav(GtkWidget *widget, __attribute_maybe_unused__ gpointer use
   // free(wd);
 }
 
-void on_cancel_file_wav(GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
+void on_cancel_file_wav( __attribute_maybe_unused__ GtkWidget *widget, __attribute_maybe_unused__ gpointer user_data)
 {
   widget_and_data *wd = (widget_and_data *)user_data;
   GtkDialog *dialog = wd->dialog;
@@ -484,7 +469,7 @@ void on_record_new_wav(__attribute_maybe_unused__ GtkWidget *widget, gpointer us
 
   g_signal_connect(G_OBJECT(record_here_wav), "clicked", G_CALLBACK(on_record_to_this_file), data);
   g_signal_connect(G_OBJECT(stop_record), "clicked", G_CALLBACK(on_stop_record), data);
-  //g_signal_connect(G_OBJECT(record_new_wav), "clicked", G_CALLBACK(on_record_to_new_file), data);
+  g_signal_connect(G_OBJECT(record_new_wav), "clicked", G_CALLBACK(on_record_to_new_file), data);
 
   gtk_dialog_run(GTK_DIALOG(record_wav_dialog));
 }
@@ -524,7 +509,7 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
     Record
 
   */
-  GtkDrawingArea *da_record = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "record_da"));
+  //GtkDrawingArea *da_record = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "record_da"));
   GtkFileChooser *wav_file_chooser = GTK_FILE_CHOOSER(gtk_builder_get_object(builder, "wav_file_chooser"));
 
   GtkButton *wav_play = GTK_BUTTON(gtk_builder_get_object(builder, "play"));
@@ -803,6 +788,9 @@ int gtk_run_app(vis_data *vis_d, int argc, char **argv)
 
   g_thread_join(thread[0]);
 
+
+  cairo_surface_destroy(my_data.main_surface);
+  cairo_surface_destroy(my_data.seen_surface);
   free(band_cut_data_low);
   free(band_cut_data_high);
   free(band_pass_data_low);

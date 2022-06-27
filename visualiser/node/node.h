@@ -10,7 +10,11 @@
 #define NODE_H
 
 
+/*
 
+
+The sig info now contains the EWt
+*/
 typedef struct sig_info
 {
   int type;
@@ -21,7 +25,14 @@ typedef struct sig_info
   float phase;
   float inverse;
   int mute;
+
+  unsigned short * current_index;
+  /*Only Used for drawing the signal*/
   float * signal;
+  /* Elementary Wave Table*/
+  float * ewt;
+
+
 }sig_info;
 
 //An event could be anything the user has done

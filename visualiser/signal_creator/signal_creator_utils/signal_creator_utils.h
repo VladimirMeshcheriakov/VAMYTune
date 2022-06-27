@@ -39,6 +39,7 @@ typedef struct all_params_and_id
 all_params_and_id *init_all_params_id(id_and_param *amp, id_and_param *freq, id_and_param *composite, id_and_param *phase, id_and_param *inverse);
 all_params_and_id *prepare_all_params(int *id);
 void free_all_params(all_params_and_id *all_params);
+void ewt_init(sig_info *info);
 gboolean on_scale_change_global_freq(GtkWidget *a_scale);
 gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data);
 gboolean on_delete_node_params(__attribute_maybe_unused__ GtkWidget *a_button, gpointer user_data);

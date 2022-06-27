@@ -42,12 +42,6 @@ rectangle *init_rectangle(int x, int y, int height, int width, int x_ext, int y_
   return new_rectangle;
 }
 
-rectangle *init_rectangle_from_press(int key_id, ud *data)
-{
-  rectangle *new_rectangle = malloc(sizeof(rectangle));
-
-  return new_rectangle;
-}
 
 void print_rectangle(rectangle *rect)
 {
@@ -316,7 +310,6 @@ gboolean ccurrent_key_click_midi(GtkWidget *da, GdkEvent *event, __attribute_may
       // Updtae the exterior points
       dragged_rect->x_ext = x_midi;
       dragged_rect->y_ext = y_midi;
-      int id_ext = id_from_coordinate(x_midi, y_midi);
       if (grabbed)
       {
         grabbed = 0;
@@ -354,12 +347,13 @@ void on_midi_quit(__attribute_maybe_unused__ GtkWidget *widget, gpointer user_da
 
 gboolean on_configure(GtkWidget *widget, __attribute_maybe_unused__ GdkEventConfigure *event_p, gpointer user_data)
 {
+  
   cairo_t *cr_p;
   cairo_surfaces *surfaces;
 
   surfaces = (cairo_surfaces *)user_data;
 
-  if (surfaces->seen_surface)
+  if (surfaces->seen_surface!=NULL)
   {
     cairo_surface_destroy(surfaces->seen_surface);
   }
@@ -372,6 +366,7 @@ gboolean on_configure(GtkWidget *widget, __attribute_maybe_unused__ GdkEventConf
   cairo_set_source_surface(cr_p, surfaces->main_surface, 0, 0);
   cairo_paint(cr_p);
   cairo_destroy(cr_p);
+  
   return FALSE;
 }
 
@@ -477,7 +472,6 @@ double start_midi_rec = 0;
 // Issued on A PRESS OF THE KEY!!!
 void init_rect_from_key(int id_note, ud *data)
 {
-  rectangle *new = malloc(sizeof(rectangle));
   // In seconds
   double placement_time = data->time_management->actual_time - start_midi_rec;
 
@@ -525,7 +519,7 @@ void record_event_array(__attribute_maybe_unused__ GtkWidget *widget, gpointer u
   start_midi_rec = data->time_management->actual_time;
 }
 
-void construct_event_array(GtkWidget *widget, gpointer user_data)
+void construct_event_array(__attribute_maybe_unused__ GtkWidget *widget, gpointer user_data)
 {
   ud *data = (ud *)user_data;
   double global_snap = data->time_management->actual_time + 10;
@@ -579,7 +573,7 @@ void thread_caller(void* data)
   construct_event_array(NULL,data);
 }
 
-void empty_event_array(GtkWidget *widget, gpointer user_data)
+void empty_event_array(__attribute_maybe_unused__  GtkWidget *widget, __attribute_maybe_unused__  gpointer user_data)
 {
   for (size_t i = 0; i < 20*MINUTE*NUMBER_OF_KEYS; i++)
   {

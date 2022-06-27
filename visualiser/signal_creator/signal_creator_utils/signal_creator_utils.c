@@ -1,5 +1,15 @@
 #include "signal_creator_utils.h"
 
+//Creates the ewt
+void ewt_init(sig_info *info)
+{
+  for (int sid = 0; sid < 44100; ++sid)
+  {
+    double time = sid / 44100.0;
+    info->ewt[sid] = instance_signal(1.0, info, time, 1.0);
+  }
+}
+
 id_and_param *create_id_with_param(int *id, int param)
 {
   id_and_param *out_param = malloc(sizeof(id_and_param));
@@ -107,6 +117,7 @@ gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
   {
     affect_new(a_scale, param);
   }
+
   // Update the new sig table
 
   int cpt = 0;
@@ -116,6 +127,10 @@ gboolean on_scale_change_param(GtkWidget *a_scale, gpointer user_data)
     sine_data->signal[i] = instance_signal(0.5, sine_data, time, global_freq);
     cpt += 1;
   }
+
+  //Update the ewt
+
+  ewt_init(sine_data);
   global_signal_drawing();
   return G_SOURCE_REMOVE;
 }
